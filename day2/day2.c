@@ -96,7 +96,11 @@ static int Box_wrapping_paper(const Box *box) {
 }
 
 static Box *parse_box_line(const char *orig_line) {
-    char *line = strdup(orig_line);
+    /* Copy the line, because strsep() is destructive
+     * strsep() will move line around, so hold onto a pointer to the
+     * original memory so we can free it */
+    char *tofree, *line;
+    tofree = line = strdup(orig_line);
     assert(line != NULL);
 
     int dimensions[3];
@@ -106,13 +110,14 @@ static Box *parse_box_line(const char *orig_line) {
         dimensions[idx] = atoi(token);
         idx++;
     }
-    free(line);
 
+    free(tofree);
+    
     return Box_create(dimensions);
 }
 
 static Order *read_box_sizes(FILE *fp) {
-    char *line;
+    char *line = NULL;
     size_t linecap = 0;
     Box *box;
     Order *order = Order_create();
@@ -121,7 +126,9 @@ static Order *read_box_sizes(FILE *fp) {
         box = parse_box_line(line);
         order->paper  += Box_wrapping_paper(box);
         order->ribbon += Box_ribbon(box);
+        free(box);
     }
+    free(line);
 
     return order;
 }
@@ -143,5 +150,7 @@ int main(int argc, char **argv) {
     Order *order = read_box_sizes(fp);
     printf("The elves need %d sqft of paper and %d ft of ribbon.\n", order->paper, order->ribbon);
 
+    free(order);
+    
     return 0;
 }
