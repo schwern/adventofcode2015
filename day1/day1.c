@@ -65,5 +65,7 @@ int main(int argc, char **argv) {
         printf("Santa enters the basement at position %d.\n", floors->first_enter_basement);
     }
 
+    free(floors);
+    
     return 0;
 }
