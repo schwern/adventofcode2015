@@ -5,33 +5,38 @@
 #include <sys/errno.h>
 
 typedef struct {
-    int height;
-    int width;
-    int length;
+    int sides[3];
 } Box;
+
+#define HEIGHT 0
+#define WIDTH  1
+#define LENGTH 2
 
 static inline int min(const int x, const int y) {
     return x < y ? x : y;
 }
 
-static Box *Box_create(const int h, const int w, const int l) {
+static Box *Box_create(const int *dimensions) {
     Box *box = malloc(sizeof(Box));
-    box->height = h;
-    box->width  = w;
-    box->length = l;
+
+    for(int i = 0; i <= 2; i++) {
+        box->sides[i] = dimensions[i];
+    }
 
     return box;
 }
 
 static int Box_surface_area(const Box *box) {
-    return (2 * box->length * box->width)  +
-           (2 * box->width  * box->height) +
-           (2 * box->height * box->length);
+    return (2 * box->sides[LENGTH] * box->sides[WIDTH])  +
+           (2 * box->sides[WIDTH]  * box->sides[HEIGHT]) +
+           (2 * box->sides[HEIGHT] * box->sides[LENGTH]);
 }
 
 static int Box_wrapping_paper_slack(const Box *box) {
-    return min(box->length * box->width,
-               min(box->width * box->height, box->height * box->length)
+    return min(box->sides[LENGTH] * box->sides[WIDTH],
+               min(box->sides[WIDTH] * box->sides[HEIGHT],
+                   box->sides[HEIGHT] * box->sides[LENGTH]
+               )
            );
 }
 
@@ -52,7 +57,7 @@ static Box *parse_box_line(const char *orig_line) {
     }
     free(line);
 
-    return Box_create(dimensions[0], dimensions[1], dimensions[2]);
+    return Box_create(dimensions);
 }
 
 static long read_box_sizes(FILE *fp) {
