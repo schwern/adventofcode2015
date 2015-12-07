@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <string.h>
-#include <sys/errno.h>
 #include <stdlib.h>
 #include "file.h"
 
@@ -19,7 +17,7 @@ static struct Floors *Floors_create() {
 
     return floors;
 }
-    
+
 static struct Floors *read_floor_instructions(FILE *fp) {
     char c;
     int position = 0;
@@ -52,12 +50,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    /* Open the floor file */
-    FILE *floor_fp = fopen(argv[1], "r");
-    if( floor_fp == NULL ) {
-        fprintf(stderr, "Could not open %s: %s.\n", argv[1], strerror(errno));
-        return errno;
-    }
+    FILE *floor_fp = open_file(argv[1], "r");
     
     struct Floors *floors = read_floor_instructions(floor_fp);
     printf("The instructions take Santa to floor %d.\n", floors->end_floor);

@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <assert.h>
-#include <sys/errno.h>
+#include <string.h>
 #include "file.h"
 
 typedef struct {
@@ -141,12 +140,7 @@ int main(const int argc, char **argv) {
         return -1;
     }
 
-    /* Open the file */
-    FILE *fp = fopen(argv[1], "r");
-    if( fp == NULL ) {
-        fprintf(stderr, "Could not open %s: %s.\n", argv[1], strerror(errno));
-        return errno;
-    }
+    FILE *fp = open_file(argv[1], "r");
 
     Order *order = read_box_sizes(fp);
     printf("The elves need %d sqft of paper and %d ft of ribbon.\n", order->paper, order->ribbon);
