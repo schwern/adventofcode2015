@@ -3,66 +3,21 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <glib.h>
 
-static bool has_vowels(char *orig, const int want) {
-    int seen = 0;
-    char *string = orig;
+static bool is_nice(char *string) {
+    /* It contains at least one letter which repeats with exactly one letter
+       between them, like xyx, abcdefeghi (efe), or even aaa. */
+    if( !g_regex_match_simple("(.).\\1", string, 0, 0) )
+        return false;
 
-    if( strlen(string) < want )
+    /* It contains a pair of any two letters that appears at least twice in
+       the string without overlapping, like xyxy (xy) or aabcdefgaa (aa), but
+       not like aaa (aa, but it overlaps). */
+    if( !g_regex_match_simple("((.)[^\\2]).*\\1", string, 0, 0) )
         return false;
     
-    while( (string = strpbrk(string, "aeiou")) != NULL ) {
-        seen++;
-        if( seen >= want )
-            break;
-        string++;
-    }
-
-    return seen >= want;
-}
-
-static bool is_nice(char *string) {    
-    /* It contains at least three vowels (aeiou only),
-     * like aei, xazegov, or aeiouaeiouaeiou. */
-    if( !has_vowels(string, 3) )
-        return false;
-
-    bool seen_double = false;
-    for(int i = 0; string[i+1] != '\0'; i++) {
-        char next = string[i+1];
-
-        /* - It contains at least one letter that appears twice in a row, like xx, abcdde (dd),
-         *   or aabbccdd (aa, bb, cc, or dd). */
-        if( string[i] == next ) {
-            seen_double = true;
-        }
-
-        /* - It does not contain the strings ab, cd, pq, or xy, even if they are part of one of
-         *   the other requirements. */
-        switch(string[i]) {
-            case 'a':
-                if( next == 'b' )
-                    return false;
-                break;
-
-            case 'c':
-                if( next == 'd' )
-                    return false;
-                break;
-
-            case 'p':
-                if( next == 'q' )
-                    return false;
-                break;
-
-            case 'x':
-                if( next == 'y' )
-                    return false;
-                break;
-        }
-    }
-
-    return seen_double;
+    return true;
 }
 
 static int count_nice( FILE *fp ) {
