@@ -2,6 +2,7 @@
 #include <string.h>
 #include <sys/errno.h>
 #include <stdlib.h>
+#include "file.h"
 
 struct Floors {
     int start_floor;
@@ -46,9 +47,8 @@ static struct Floors *read_floor_instructions(FILE *fp) {
 }
 
 int main(int argc, char **argv) {
-    /* Check the arguments */
-    if( argc != 2 ) {
-        fprintf(stderr, "Usage: %s <inputfile>\n", argv[0]);
+    char *argv_desc[2] = { argv[0], "<inputfile>" };
+    if( !usage(argc, 2, argv_desc) ) {
         return -1;
     }
 

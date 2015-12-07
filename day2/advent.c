@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <sys/errno.h>
+#include "file.h"
 
 typedef struct {
     int paper;
@@ -133,10 +134,10 @@ static Order *read_box_sizes(FILE *fp) {
     return order;
 }
 
-int main(int argc, char **argv) {
-    /* Check the arguments */
-    if( argc != 2 ) {
-        fprintf(stderr, "Usage: %s <inputfile>\n", argv[0]);
+int main(const int argc, char **argv) {
+    char *argv_desc[2] = {argv[0], "<inputfile>"};
+    
+    if( !usage(argc, 2, argv_desc) ) {
         return -1;
     }
 
