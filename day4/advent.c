@@ -15,7 +15,7 @@ int mine_adventcoins(char *start) {
         strlcat(key, num, 20);
 
         char *md5sum = g_compute_checksum_for_string(G_CHECKSUM_MD5, key, -1);
-        if( strncmp(md5sum, "00000", 5) == 0 )
+        if( strncmp(md5sum, "000000", 6) == 0 )
             return i;
     }
 
