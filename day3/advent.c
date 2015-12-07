@@ -24,30 +24,35 @@ static void deliver( GHashTable *houses, const int *pos ) {
 
 static GHashTable *deliver_to_houses( FILE *fp ) {
     GHashTable *houses = g_hash_table_new_full(g_int64_hash, g_int64_equal, free_key, NULL);
-    int pos[2] = {0,0};
-
-    deliver(houses, pos);
+    int pos[2][2] = {{0,0}, {0,0}};
+    int steps = 0;
+    
+    deliver(houses, pos[0]);
     
     while( !feof(fp) ) {
+        short who = steps % 2;
+        
         char c = (char)fgetc(fp);
         switch(c) {
             case '>':
-                pos[0]++;
-                deliver(houses, pos);
+                pos[who][0]++;
+                deliver(houses, pos[who]);
                 break;
             case '<':
-                pos[0]--;
-                deliver(houses, pos);
+                pos[who][0]--;
+                deliver(houses, pos[who]);
                 break;
             case 'v':
-                pos[1]--;
-                deliver(houses, pos);
+                pos[who][1]--;
+                deliver(houses, pos[who]);
                 break;
             case '^':
-                pos[1]++;
-                deliver(houses, pos);
+                pos[who][1]++;
+                deliver(houses, pos[who]);
                 break;
         }
+
+        steps++;
     };
 
     return houses;
