@@ -1,5 +1,6 @@
 %{
     #include <stdio.h>
+    #include <stdlib.h>
     #include "advent.y.h"
     #include "advent.l.h"
     #include "file.h"
@@ -44,6 +45,7 @@ coordinate: NUMBER COMMA NUMBER  {
 exp: COMMAND coordinate THROUGH coordinate {
     int coords[2][2] = {{$2[0], $2[1]}, {$4[0], $4[1]}};
     change_lights(Lights, $1, coords);
+    free($1);
 }
 
 
