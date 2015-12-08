@@ -2,3 +2,5 @@
 .DS_Store
 advent
 *.o
+*.l.*
+*.y.*

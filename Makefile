@@ -11,6 +11,9 @@ ADVENTS=$(addsuffix /advent, $(DAYS))
 
 all : Makefile $(ADVENTS)
 
+force-look :
+	true
+
 echo :
 	@echo OBJS $(OBJS)
 	@echo HEADERS $(HEADERS)
@@ -20,11 +23,14 @@ echo :
 $(OBJS) : $(HEADERS)
 
 $(ADVENTS) : $(OBJS)
+day6/advent : force-look
+	cd day6; $(MAKE) advent
 
 clean:
 	rm -f $(OBJS)
 	rm -f $(ADVENTS)
 	find . -name '*.dSYM' | xargs rm -rf
+	cd day6; $(MAKE) clean
 
 try : $(ADVENTS)
 	@for day in $(DAYS); do echo $$day -----; ./$$day/advent $$day/input; done
