@@ -1,8 +1,14 @@
 %{
     #include <stdio.h>
+    #include <stdbool.h>
     #include "advent.y.h"
     #include "advent.l.h"
+    #include "file.h"
 
+    #define MAX_LIGHTS 1000
+    bool Lights[MAX_LIGHTS][MAX_LIGHTS] = {{0}};
+
+    void change_lights(bool Lights[MAX_LIGHTS][MAX_LIGHTS], const char *command, int where[2][2]);
     void yyerror (YYLTYPE *loc, char const *msg);
 %}
 
@@ -26,14 +32,19 @@
 
 %%
 
-line: exp END;
+lines : line |
+lines line
+
+line: exp END |
+exp;
 
 coordinate: NUMBER COMMA NUMBER  {
     $$[0] = $1; $$[1] = $3;
 }
 
 exp: COMMAND coordinate THROUGH coordinate {
-    printf("%s: %d,%d %d,%d\n", $1, $2[0], $2[1], $4[0], $4[1]);
+    int coords[2][2] = {{$2[0], $2[1]}, {$4[0], $4[1]}};
+    change_lights(Lights, $1, coords);
 }
 
 
@@ -47,9 +58,74 @@ void yyerror (YYLTYPE *loc, char const *msg) {
     );
 }
 
+static void set_lights(bool Lights[MAX_LIGHTS][MAX_LIGHTS], int where[2][2], bool set) {
+    int *from = where[0];
+    int *to   = where[1]; 
+    
+    int row;
+    int col;
 
-int main() {
+    for( row = from[0]; row <= to[0]; row++ ) {
+        for( col = from[1]; col <= to[1]; col++ ) {
+            Lights[row][col] = set;
+        }
+    }
+}
+
+static void toggle_lights(bool Lights[MAX_LIGHTS][MAX_LIGHTS], int where[2][2]) {
+    int *from = where[0];
+    int *to   = where[1]; 
+    
+    int row;
+    int col;
+
+    for( row = from[0]; row <= to[0]; row++ ) {
+        for( col = from[1]; col <= to[1]; col++ ) {
+            Lights[row][col] = !Lights[row][col];
+        }
+    }
+}
+
+void change_lights(bool Lights[MAX_LIGHTS][MAX_LIGHTS], const char *command, int where[2][2]) {
+    if( strcmp(command, "turn on") == 0 ) {
+        set_lights(Lights, where, true);
+    }
+    else if( strcmp(command, "turn off") == 0 ) {
+        set_lights(Lights, where, false);
+    }
+    else if( strcmp(command, "toggle") == 0 ) {
+        toggle_lights(Lights, where);
+    }
+    else {
+        fprintf(stderr, "Unknown command: %s\n", command);
+    }
+}
+
+static int count_lights(bool Lights[MAX_LIGHTS][MAX_LIGHTS], bool want) {
+    int count = 0;
+    
+    for(int row = 0; row < MAX_LIGHTS; row++) {
+        for(int col = 0; col < MAX_LIGHTS; col++) {
+            if( Lights[row][col] == want ) {
+                count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+int main(int argc, char **argv) {
+    FILE *input = stdin;
+    
+    if( argv[1] ) {
+        input = open_file(argv[1], "r");
+    }
+
+    yyin = input;
     do {
         yyparse();
     } while(!feof(yyin));
+
+    printf("THERE! ARE! %d! LIGHTS!\n", count_lights(Lights, true));
 }
