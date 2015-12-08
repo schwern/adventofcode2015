@@ -4,6 +4,10 @@ CFLAGS = -Wall -g -I../lib
 
 all : advent
 
+advent2 : CFLAGS  += `pkg-config --cflags glib-2.0`
+advent2 : LDFLAGS += `pkg-config --libs glib-2.0`
+advent2 : ../lib/file.o advent2.c
+
 advent.l.c : advent.l
 	flex -o advent.l.c advent.l
 
@@ -14,7 +18,7 @@ advent : advent.l.c advent.y.c
 	$(CC) $(CFLAGS) advent.l.c advent.y.c ../lib/file.o -o advent
 
 clean :
-	rm -f advent.l.* advent.y.* advent
+	rm -f advent.l.* advent.y.* advent advent2
 	rm -rf *.dSYM
 
 test : advent
