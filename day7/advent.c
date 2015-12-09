@@ -52,6 +52,16 @@ static inline c_signal *init_val() {
     return (c_signal *)malloc(sizeof(c_signal));
 }
 
+static inline char *get_match(GMatchInfo *match, char *key) {
+    char *val = g_match_info_fetch_named(match, key);
+    if( !val ) {
+        fprintf(stderr, "%s not found in %s\n", key, g_match_info_get_string(match));
+        exit(1);
+    }
+
+    return val;
+}
+
 static inline c_signal *get_var_or_init(GHashTable *result, char *key) {
     c_signal *val = g_hash_table_lookup(result, key);
     if( !val ) {
@@ -104,11 +114,7 @@ static void process_circuit_line(GHashTable *result, char *line) {
         return;
     }
     
-    char *assign = g_match_info_fetch_named(match, "ASSIGN");
-    if( !assign ) {
-        fprintf(stderr, "No assignment found for line %s.\n", line);
-        return;
-    }
+    char *assign = get_match(match, "ASSIGN");
     assign = strdup(assign);
 
     char *cmd = g_match_info_fetch_named(match, "CMD");
@@ -117,17 +123,15 @@ static void process_circuit_line(GHashTable *result, char *line) {
         fprintf(stderr, "Command: '%s'.\n", cmd );
 
     if( !cmd || cmd[0] == '\0' ) {
-        char *strval = g_match_info_fetch_named(match, "VAL");
-        if( !strval )
-            fprintf(stderr, "Missing value in %s.", line);
+        char *strval = get_match(match, "VAL");
         set_var_value(result, assign, atoi(strval));
     }
     else if( is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ) {
     }
     else if( is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT") ) {
-        c_signal rval = (c_signal)atoi(g_match_info_fetch_named(match, "RIGHT"));
+        c_signal rval = (c_signal)atoi(get_match(match, "RIGHT"));
 
-        char *left = g_match_info_fetch_named(match, "LEFT");
+        char *left = get_match(match, "LEFT");
         c_signal *lvalp = get_var(result, left);
 
         if( DEBUG )
@@ -141,7 +145,7 @@ static void process_circuit_line(GHashTable *result, char *line) {
         }
     }
     else if( is_cmd(cmd, "NOT" ) ) {
-        char *right = g_match_info_fetch_named(match, "RIGHT");
+        char *right = get_match(match, "RIGHT");
         c_signal *right_val = get_var(result, right);
         c_signal *val       = get_var_or_init(result, assign);
 
