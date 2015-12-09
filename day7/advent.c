@@ -83,16 +83,12 @@ static inline c_signal *get_var(GHashTable *result, char *key) {
 }
 
 static inline void set_var(GHashTable *result, char *key, c_signal *val) {
-    if( DEBUG )
-        fprintf(stderr, "Setting %s to %d\n", key, (int)*val);
     g_hash_table_replace(result, key, val);
 }
 
 static inline void set_var_value(GHashTable *result, char *key, c_signal _val) {
     c_signal *val = init_val();
     *val = _val;
-    if( DEBUG )
-        fprintf(stderr, "Val set to %d\n", (int)*val);
     set_var(result, key, val);
 }
 
@@ -123,8 +119,10 @@ static void process_circuit_line(GHashTable *result, char *line) {
         fprintf(stderr, "Command: '%s'.\n", cmd );
 
     if( !cmd || cmd[0] == '\0' ) {
-        char *strval = get_match(match, "VAL");
-        set_var_value(result, assign, atoi(strval));
+        c_signal val = (c_signal)atoi( get_match(match, "VAL") );
+        if( DEBUG )
+            fprintf(stderr, "%d -> %s\n", val, assign);
+        set_var_value(result, assign, val);
     }
     else if( is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ) {
         char *left  = get_match(match, "LEFT");
@@ -132,6 +130,9 @@ static void process_circuit_line(GHashTable *result, char *line) {
         c_signal *lvalp = get_var(result, left);
         c_signal *rvalp = get_var(result, right);
 
+        if( DEBUG )
+            fprintf(stderr, "%s %d %s %s %d -> %s\n", left, *lvalp, cmd, right, *rvalp, assign);
+        
         if( is_cmd(cmd, "AND") )
             set_var_value(result, assign, *lvalp & *rvalp);
         else
@@ -144,7 +145,7 @@ static void process_circuit_line(GHashTable *result, char *line) {
         c_signal *lvalp = get_var(result, left);
 
         if( DEBUG )
-            fprintf(stderr, "%s %d XSHIFT %d -> %s\n", left, *lvalp, rval, assign);
+            fprintf(stderr, "%s %d %s %d -> %s\n", left, *lvalp, cmd, rval, assign);
 
         if( is_cmd(cmd, "LSHIFT") )
             set_var_value(result, assign, *lvalp << rval);
@@ -153,13 +154,13 @@ static void process_circuit_line(GHashTable *result, char *line) {
     }
     else if( is_cmd(cmd, "NOT" ) ) {
         char *right = get_match(match, "RIGHT");
-        c_signal *right_val = get_var(result, right);
-        c_signal *val       = get_var_or_init(result, assign);
+        c_signal *rvalp = get_var(result, right);
+        c_signal *avalp = get_var_or_init(result, assign);
 
         if( DEBUG )
-            fprintf(stderr, "NOT %s %d -> %s %d\n", right, *right_val, assign, *val);
+            fprintf(stderr, "NOT %s %d -> %s %d\n", right, *rvalp, assign, *avalp);
         
-        *val = ~*right_val;
+        *avalp = ~*rvalp;
     }
     else {
         fprintf(stderr, "Unknown command %s for line %s.\n", cmd, line);
