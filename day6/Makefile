@@ -1,6 +1,8 @@
 .PHONY = test
 
 CFLAGS = -Wall -g -I../lib
+CFLAGS  += `pkg-config --cflags glib-2.0`
+LDFLAGS += `pkg-config --libs glib-2.0`
 
 all : advent
 
@@ -15,7 +17,7 @@ advent.y.c : advent.y advent.l.c
 	bison -o advent.y.c advent.y
 
 advent : advent.l.c advent.y.c
-	$(CC) $(CFLAGS) advent.l.c advent.y.c ../lib/file.o -o advent
+	$(CC) $(CFLAGS) $(LDFLAGS) advent.l.c advent.y.c ../lib/file.o -o advent
 
 clean :
 	rm -f advent.l.* advent.y.* advent advent2

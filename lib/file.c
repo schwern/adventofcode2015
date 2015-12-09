@@ -22,3 +22,22 @@ void usage(int argc, char *desc[]) {
     }
     fputs("\n", stderr);
 }
+
+// Same as g_regex_new, but no error
+GRegex *compile_regex(
+    const gchar *pattern,
+    GRegexCompileFlags compile_options,
+    GRegexMatchFlags match_options
+) {
+    GError *error;
+
+    GRegex *re = g_regex_new(pattern, compile_options, match_options, &error);
+
+    if( error != NULL ) {
+        fprintf(stderr, "Can't compile regex: %s\n", error->message);
+        g_error_free(error);
+        exit(1);
+    }
+
+    return re;
+}
