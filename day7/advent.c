@@ -127,6 +127,15 @@ static void process_circuit_line(GHashTable *result, char *line) {
         set_var_value(result, assign, atoi(strval));
     }
     else if( is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ) {
+        char *left  = get_match(match, "LEFT");
+        char *right = get_match(match, "RIGHT");
+        c_signal *lvalp = get_var(result, left);
+        c_signal *rvalp = get_var(result, right);
+
+        if( is_cmd(cmd, "AND") )
+            set_var_value(result, assign, *lvalp & *rvalp);
+        else
+            set_var_value(result, assign, *lvalp | *rvalp);
     }
     else if( is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT") ) {
         c_signal rval = (c_signal)atoi(get_match(match, "RIGHT"));
@@ -137,12 +146,10 @@ static void process_circuit_line(GHashTable *result, char *line) {
         if( DEBUG )
             fprintf(stderr, "%s %d XSHIFT %d -> %s\n", left, *lvalp, rval, assign);
 
-        if( is_cmd(cmd, "LSHIFT") ) {
+        if( is_cmd(cmd, "LSHIFT") )
             set_var_value(result, assign, *lvalp << rval);
-        }
-        else {
+        else
             set_var_value(result, assign, *lvalp >> rval);
-        }
     }
     else if( is_cmd(cmd, "NOT" ) ) {
         char *right = get_match(match, "RIGHT");
