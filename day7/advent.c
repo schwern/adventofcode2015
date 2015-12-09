@@ -41,11 +41,25 @@ static void free_regexes() {
     g_regex_unref(Circuit_Line_Re);
 }
 
+static gint cmp_keys(gconstpointer _a, gconstpointer _b) {
+    char *a = (char *)_a;
+    char *b = (char *)_b;
+
+    return strcmp(a, b);
+}
+
 static void print_state_cb(gpointer _key, gpointer _val, gpointer user_data) {
     char *key    = (char *)_key;
     c_signal val = *(c_signal *)_val;
 
     printf("%s: %d\n", key, val);
+}
+
+static void state_foreach_sorted(GHashTable *state, GHFunc cb) {
+    GList *sorted_keys = g_list_sort(g_hash_table_get_keys( state ), cmp_keys);
+    for (GList *k = sorted_keys; k != NULL; k = k->next) {
+        cb( k->data, g_hash_table_lookup( state, k->data ), NULL );
+    }
 }
 
 static inline c_signal *init_val() {
@@ -198,7 +212,7 @@ int main(const int argc, char **argv) {
         input = open_file(argv[1], "r");
 
     GHashTable *state = read_circuit(input);
-    g_hash_table_foreach( state, print_state_cb, NULL );
+    state_foreach_sorted(state, print_state_cb);
     g_hash_table_unref(state);
 
     return 0;
