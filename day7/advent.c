@@ -64,10 +64,26 @@ static inline c_signal *get_var_or_init(GHashTable *result, char *key) {
 
 static inline c_signal *get_var(GHashTable *result, char *key) {
     c_signal *val = g_hash_table_lookup(result, key);
-    if( !val )
+    if( !val ) {
         fprintf(stderr, "Variable %s is undefined.\n", key);
+        exit(1);
+    }
 
     return val;
+}
+
+static inline void set_var(GHashTable *result, char *key, c_signal *val) {
+    if( DEBUG )
+        fprintf(stderr, "Setting %s to %d\n", key, (int)*val);
+    g_hash_table_replace(result, key, val);
+}
+
+static inline void set_var_value(GHashTable *result, char *key, c_signal _val) {
+    c_signal *val = init_val();
+    *val = _val;
+    if( DEBUG )
+        fprintf(stderr, "Val set to %d\n", (int)*val);
+    set_var(result, key, val);
 }
 
 static inline bool is_cmd(char *have, char *want) {
@@ -104,14 +120,25 @@ static void process_circuit_line(GHashTable *result, char *line) {
         char *strval = g_match_info_fetch_named(match, "VAL");
         if( !strval )
             fprintf(stderr, "Missing value in %s.", line);
-        c_signal *val = init_val();
-        *val = atoi(strval);
-
-        g_hash_table_replace(result, assign, val);
+        set_var_value(result, assign, atoi(strval));
     }
     else if( is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ) {
     }
     else if( is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT") ) {
+        c_signal rval = (c_signal)atoi(g_match_info_fetch_named(match, "RIGHT"));
+
+        char *left = g_match_info_fetch_named(match, "LEFT");
+        c_signal *lvalp = get_var(result, left);
+
+        if( DEBUG )
+            fprintf(stderr, "%s %d XSHIFT %d -> %s\n", left, *lvalp, rval, assign);
+
+        if( is_cmd(cmd, "LSHIFT") ) {
+            set_var_value(result, assign, *lvalp << rval);
+        }
+        else {
+            set_var_value(result, assign, *lvalp >> rval);
+        }
     }
     else if( is_cmd(cmd, "NOT" ) ) {
         char *right = g_match_info_fetch_named(match, "RIGHT");
@@ -121,7 +148,7 @@ static void process_circuit_line(GHashTable *result, char *line) {
         if( DEBUG )
             fprintf(stderr, "NOT %s %d -> %s %d\n", right, *right_val, assign, *val);
         
-        *val = ~(c_signal)*right_val;
+        *val = ~*right_val;
     }
     else {
         fprintf(stderr, "Unknown command %s for line %s.\n", cmd, line);
