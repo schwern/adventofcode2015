@@ -41,7 +41,7 @@ static void free_regexes() {
     g_regex_unref(Circuit_Line_Re);
 }
 
-static void print_result_cb(gpointer _key, gpointer _val, gpointer user_data) {
+static void print_state_cb(gpointer _key, gpointer _val, gpointer user_data) {
     char *key    = (char *)_key;
     c_signal val = *(c_signal *)_val;
 
@@ -62,18 +62,18 @@ static inline char *get_match(GMatchInfo *match, char *key) {
     return val;
 }
 
-static inline c_signal *get_var_or_init(GHashTable *result, char *key) {
-    c_signal *val = g_hash_table_lookup(result, key);
+static inline c_signal *get_var_or_init(GHashTable *state, char *key) {
+    c_signal *val = g_hash_table_lookup(state, key);
     if( !val ) {
         val = init_val();
-        g_hash_table_insert(result, key, val);
+        g_hash_table_insert(state, key, val);
     }
 
     return val;
 }
 
-static inline c_signal *get_var(GHashTable *result, char *key) {
-    c_signal *val = g_hash_table_lookup(result, key);
+static inline c_signal *get_var(GHashTable *state, char *key) {
+    c_signal *val = g_hash_table_lookup(state, key);
     if( !val ) {
         fprintf(stderr, "Variable %s is undefined.\n", key);
         exit(1);
@@ -82,21 +82,21 @@ static inline c_signal *get_var(GHashTable *result, char *key) {
     return val;
 }
 
-static inline void set_var(GHashTable *result, char *key, c_signal *val) {
-    g_hash_table_replace(result, key, val);
+static inline void set_var(GHashTable *state, char *key, c_signal *val) {
+    g_hash_table_replace(state, key, val);
 }
 
-static inline void set_var_value(GHashTable *result, char *key, c_signal _val) {
+static inline void set_var_value(GHashTable *state, char *key, c_signal _val) {
     c_signal *val = init_val();
     *val = _val;
-    set_var(result, key, val);
+    set_var(state, key, val);
 }
 
 static inline bool is_cmd(char *have, char *want) {
     return strcmp(g_ascii_strup(have, -1), g_ascii_strup(want, -1)) == 0 ? true : false;
 }
 
-static void process_circuit_line(GHashTable *result, char *line) {
+static void process_circuit_line(GHashTable *state, char *line) {
     GMatchInfo *match;
 
     if( g_regex_match(Blank_Line_Re, line, 0, NULL) ) {
@@ -122,40 +122,40 @@ static void process_circuit_line(GHashTable *result, char *line) {
         c_signal val = (c_signal)atoi( get_match(match, "VAL") );
         if( DEBUG )
             fprintf(stderr, "%d -> %s\n", val, assign);
-        set_var_value(result, assign, val);
+        set_var_value(state, assign, val);
     }
     else if( is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ) {
         char *left  = get_match(match, "LEFT");
         char *right = get_match(match, "RIGHT");
-        c_signal *lvalp = get_var(result, left);
-        c_signal *rvalp = get_var(result, right);
+        c_signal *lvalp = get_var(state, left);
+        c_signal *rvalp = get_var(state, right);
 
         if( DEBUG )
             fprintf(stderr, "%s %d %s %s %d -> %s\n", left, *lvalp, cmd, right, *rvalp, assign);
         
         if( is_cmd(cmd, "AND") )
-            set_var_value(result, assign, *lvalp & *rvalp);
+            set_var_value(state, assign, *lvalp & *rvalp);
         else
-            set_var_value(result, assign, *lvalp | *rvalp);
+            set_var_value(state, assign, *lvalp | *rvalp);
     }
     else if( is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT") ) {
         c_signal rval = (c_signal)atoi(get_match(match, "RIGHT"));
 
         char *left = get_match(match, "LEFT");
-        c_signal *lvalp = get_var(result, left);
+        c_signal *lvalp = get_var(state, left);
 
         if( DEBUG )
             fprintf(stderr, "%s %d %s %d -> %s\n", left, *lvalp, cmd, rval, assign);
 
         if( is_cmd(cmd, "LSHIFT") )
-            set_var_value(result, assign, *lvalp << rval);
+            set_var_value(state, assign, *lvalp << rval);
         else
-            set_var_value(result, assign, *lvalp >> rval);
+            set_var_value(state, assign, *lvalp >> rval);
     }
     else if( is_cmd(cmd, "NOT" ) ) {
         char *right = get_match(match, "RIGHT");
-        c_signal *rvalp = get_var(result, right);
-        c_signal *avalp = get_var_or_init(result, assign);
+        c_signal *rvalp = get_var(state, right);
+        c_signal *avalp = get_var_or_init(state, assign);
 
         if( DEBUG )
             fprintf(stderr, "NOT %s %d -> %s %d\n", right, *rvalp, assign, *avalp);
@@ -173,17 +173,17 @@ static void process_circuit_line(GHashTable *result, char *line) {
 static GHashTable *read_circuit(FILE *fp) {
     char *line = NULL;
     size_t line_size = 0;
-    GHashTable *result = g_hash_table_new(g_str_hash, g_str_equal);
+    GHashTable *state = g_hash_table_new(g_str_hash, g_str_equal);
 
     init_regexes();
     
     while( getline(&line, &line_size, fp) > 0 ) {
-        process_circuit_line(result, line);
+        process_circuit_line(state, line);
     }
 
     free_regexes();
     
-    return result;
+    return state;
 }
 
 int main(const int argc, char **argv) {
@@ -197,9 +197,9 @@ int main(const int argc, char **argv) {
     if( argc == 2 )
         input = open_file(argv[1], "r");
 
-    GHashTable *result = read_circuit(input);
-    g_hash_table_foreach( result, print_result_cb, NULL );
-    g_hash_table_unref(result);
+    GHashTable *state = read_circuit(input);
+    g_hash_table_foreach( state, print_state_cb, NULL );
+    g_hash_table_unref(state);
 
     return 0;
 }
