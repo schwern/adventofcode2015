@@ -5,29 +5,30 @@
 #include <string.h>
 
 GRegex *Circuit_Line_Re;
+GRegex *Blank_Line_Re;
 
 static void init_regexes() {
-    GError *error;
+    if( !Blank_Line_Re ) {
+        Blank_Line_Re = compile_regex(
+            "^ \\s* $",
+            G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
+            0
+        );
+    }
     
     if( !Circuit_Line_Re ) {
-        Circuit_Line_Re = g_regex_new(
+        Circuit_Line_Re = compile_regex(
             " ^ \\s* "
             " (?: "
-            "   (?<VAL>[[:alnum:]]+) | "
-            "   (?:(?<LVAR>[[:alnum:]]+) \\s+)? (?<CMD>[[:alpha:]]+) \\s+ (?<RVAR>[[:alnum:]]+) "
+            "   (?<VAL>[[:digit:]]+) | "
+            "   (?:(?<LEFT>[[:alpha:]]+) \\s+)? (?<CMD>[[:alpha:]]+) \\s+ (?<RIGHT>[[:alnum:]]+) "
             " ) "
             " \\s* -> \\s* "
             " (?<ASSIGN>[[:alpha:]]+) "
             " \\s* $ ",
             G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
-            0,
-            &error
+            0
         );
-
-        if( error != NULL ) {
-            fprintf(stderr, "Can't compile regex: %s\n", error->message);
-            exit(1);
-        }
     }
 }
 
@@ -44,6 +45,13 @@ static void print_result_cb(gpointer _key, gpointer _val, gpointer user_data) {
 
 static void process_circuit_line(GHashTable *result, char *line) {
     GMatchInfo *match;
+
+    if( g_regex_match(Blank_Line_Re, line, 0, NULL) ) {
+        if( DEBUG )
+            fprintf(stderr, "Blank line.\n");
+        return;
+    }
+    
     if( !g_regex_match(Circuit_Line_Re, line, 0, &match) ) {
         fprintf(stderr, "Cannot understand %s.\n", line);
         return;
