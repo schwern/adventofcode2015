@@ -105,9 +105,10 @@ static int light_brightness(int Lights[MAX_LIGHTS][MAX_LIGHTS]) {
 int main(int argc, char **argv) {
     FILE *input = stdin;
 
-    if( argc > 1 ) {
+    if( argc > 2 ) {
         char *desc[2] = {argv[0], "<light file>"};
         usage(2, desc);
+        return 1;
     }
     
     if( argv[1] ) {
