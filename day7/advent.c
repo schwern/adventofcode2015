@@ -155,7 +155,10 @@ static void process_circuit_line(GHashTable *state, char *line) {
             fprintf(stderr, "%d -> %s\n", *valp, assign);
         set_var(state, assign, valp);
     }
-    else if( is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ) {
+    else if(
+        is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ||
+        is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT")
+    ) {
         char *left  = get_match(match, "LEFT");
         char *right = get_match(match, "RIGHT");
         c_signal *lvalp = get_val(state, left);
@@ -166,19 +169,9 @@ static void process_circuit_line(GHashTable *state, char *line) {
         
         if( is_cmd(cmd, "AND") )
             set_var_value(state, assign, *lvalp & *rvalp);
-        else
+        else if( is_cmd(cmd, "OR" ) )
             set_var_value(state, assign, *lvalp | *rvalp);
-    }
-    else if( is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT") ) {
-        char *right = get_match(match, "RIGHT");
-        char *left = get_match(match, "LEFT");
-        c_signal *rvalp = get_val(state, right);
-        c_signal *lvalp = get_val(state, left);
-
-        if( DEBUG )
-            fprintf(stderr, "%s %d %s %d -> %s\n", left, *lvalp, cmd, *rvalp, assign);
-
-        if( is_cmd(cmd, "LSHIFT") )
+        else if( is_cmd(cmd, "LSHIFT") )
             set_var_value(state, assign, *lvalp << *rvalp);
         else
             set_var_value(state, assign, *lvalp >> *rvalp);
