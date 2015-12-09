@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+#include <ctype.h>
+#include <stdint.h>
+
+typedef uint16_t c_signal;
 
 GRegex *Circuit_Line_Re;
 GRegex *Blank_Line_Re;
@@ -37,10 +42,36 @@ static void free_regexes() {
 }
 
 static void print_result_cb(gpointer _key, gpointer _val, gpointer user_data) {
-    char *key = (char *)_key;
-    int   val = *(int *)_val;
+    char *key    = (char *)_key;
+    c_signal val = *(c_signal *)_val;
 
     printf("%s: %d\n", key, val);
+}
+
+static inline c_signal *init_val() {
+    return (c_signal *)malloc(sizeof(c_signal));
+}
+
+static inline c_signal *get_var_or_init(GHashTable *result, char *key) {
+    c_signal *val = g_hash_table_lookup(result, key);
+    if( !val ) {
+        val = init_val();
+        g_hash_table_insert(result, key, val);
+    }
+
+    return val;
+}
+
+static inline c_signal *get_var(GHashTable *result, char *key) {
+    c_signal *val = g_hash_table_lookup(result, key);
+    if( !val )
+        fprintf(stderr, "Variable %s is undefined.\n", key);
+
+    return val;
+}
+
+static inline bool is_cmd(char *have, char *want) {
+    return strcmp(g_ascii_strup(have, -1), g_ascii_strup(want, -1)) == 0 ? true : false;
 }
 
 static void process_circuit_line(GHashTable *result, char *line) {
@@ -73,20 +104,24 @@ static void process_circuit_line(GHashTable *result, char *line) {
         char *strval = g_match_info_fetch_named(match, "VAL");
         if( !strval )
             fprintf(stderr, "Missing value in %s.", line);
-        int *val = malloc(sizeof(int));
+        c_signal *val = init_val();
         *val = atoi(strval);
 
         g_hash_table_replace(result, assign, val);
     }
-    else if( strcmp(cmd, "AND") ) {
+    else if( is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ) {
     }
-    else if( strcmp(cmd, "OR") ) {
+    else if( is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT") ) {
     }
-    else if( strcmp(cmd, "LSHIFT") ) {
-    }
-    else if( strcmp(cmd, "RSHIFT") ) {
-    }
-    else if( strcmp(cmd, "NOT" ) ) {
+    else if( is_cmd(cmd, "NOT" ) ) {
+        char *right = g_match_info_fetch_named(match, "RIGHT");
+        c_signal *right_val = get_var(result, right);
+        c_signal *val       = get_var_or_init(result, assign);
+
+        if( DEBUG )
+            fprintf(stderr, "NOT %s %d -> %s %d\n", right, *right_val, assign, *val);
+        
+        *val = ~(c_signal)*right_val;
     }
     else {
         fprintf(stderr, "Unknown command %s for line %s.\n", cmd, line);
