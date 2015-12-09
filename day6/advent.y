@@ -6,9 +6,10 @@
     #include "file.h"
 
     #define MAX_LIGHTS 1000
-    int Lights[MAX_LIGHTS][MAX_LIGHTS] = {{0}};
 
-    void change_lights(int Lights[MAX_LIGHTS][MAX_LIGHTS], const char *command, int where[2][2]);
+    int *Lights;
+
+    void change_lights(int *lights, const char *command, int where[2][2]);
     void yyerror (YYLTYPE *loc, char const *msg);
 %}
 
@@ -59,7 +60,11 @@ void yyerror (YYLTYPE *loc, char const *msg) {
     );
 }
 
-static void dim_lights(int Lights[MAX_LIGHTS][MAX_LIGHTS], int where[2][2], int dim) {
+static inline int light_key(int row, int col) {
+    return row + col * MAX_LIGHTS;
+}
+
+static void dim_lights(int *lights, int where[2][2], int dim) {
     int *from = where[0];
     int *to   = where[1]; 
     
@@ -68,38 +73,48 @@ static void dim_lights(int Lights[MAX_LIGHTS][MAX_LIGHTS], int where[2][2], int 
 
     for( row = from[0]; row <= to[0]; row++ ) {
         for( col = from[1]; col <= to[1]; col++ ) {
-            Lights[row][col] += dim;
-            if( Lights[row][col] < 0 )
-                Lights[row][col] = 0;
+            int key = light_key(row, col);
+            lights[key] += dim;
+            if( lights[key] < 0 )
+                lights[key] = 0;
         }
     }
 }
 
-void change_lights(int Lights[MAX_LIGHTS][MAX_LIGHTS], const char *command, int where[2][2]) {
+void change_lights(int *lights, const char *command, int where[2][2]) {
     if( strcmp(command, "turn on") == 0 ) {
-        dim_lights(Lights, where, +1);
+        dim_lights(lights, where, +1);
     }
     else if( strcmp(command, "turn off") == 0 ) {
-        dim_lights(Lights, where, -1);
+        dim_lights(lights, where, -1);
     }
     else if( strcmp(command, "toggle") == 0 ) {
-        dim_lights(Lights, where, +2);
+        dim_lights(lights, where, +2);
     }
     else {
         fprintf(stderr, "Unknown command: %s\n", command);
     }
 }
 
-static int light_brightness(int Lights[MAX_LIGHTS][MAX_LIGHTS]) {
+static int light_brightness(int *lights) {
     int brightness = 0;
     
     for(int row = 0; row < MAX_LIGHTS; row++) {
         for(int col = 0; col < MAX_LIGHTS; col++) {
-            brightness += Lights[row][col];
+            int key = light_key(row, col);
+            brightness += lights[key];
         }
     }
 
     return brightness;
+}
+
+static void init_lights(int **lights) {
+    *lights = calloc(1, sizeof(int) * MAX_LIGHTS * MAX_LIGHTS);
+}
+
+static void free_lights(int *lights) {
+    free(lights);
 }
 
 int main(int argc, char **argv) {
@@ -115,10 +130,14 @@ int main(int argc, char **argv) {
         input = open_file(argv[1], "r");
     }
 
+    init_lights(&Lights);
+    
     yyin = input;
     do {
         yyparse();
     } while(!feof(yyin));
 
     printf("%d\n", light_brightness(Lights));
+
+    free_lights(Lights);
 }
