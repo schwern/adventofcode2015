@@ -15,16 +15,10 @@ FILE *open_file(const char *filename, const char *mode) {
     return fp;
 }
 
-bool usage(const int argc, const int argc_desc, char **argv_desc) {
-    if( argc != argc_desc ) {
-        fputs("Usage: ", stderr);
-        for(int i = 1; i < argc_desc; i++) {
-            fprintf(stderr, " %s", argv_desc[i]);
-        }
-        fprintf(stderr, "\n");
-
-        return false;
+void usage(int argc, char *desc[]) {
+    fputs("Usage:", stderr);
+    for( int i = 0; i < argc; i++ ) {
+        fprintf(stderr, " %s", desc[i]);
     }
-
-    return true;
+    fputs("\n", stderr);
 }

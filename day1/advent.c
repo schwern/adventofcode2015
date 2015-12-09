@@ -45,8 +45,9 @@ static struct Floors *read_floor_instructions(FILE *fp) {
 }
 
 int main(int argc, char **argv) {
-    char *argv_desc[2] = { argv[0], "<inputfile>" };
-    if( !usage(argc, 2, argv_desc) ) {
+    if( argc != 2 ) {
+        char *desc[2] = { argv[0], "<inputfile>" };
+        usage(2, desc);
         return -1;
     }
 

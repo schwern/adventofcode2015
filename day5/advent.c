@@ -44,9 +44,9 @@ static int count_nice( FILE *fp ) {
 }
 
 int main(const int argc, char **argv) {
-    char *argv_desc[2] = {argv[1], "<input file>"};
-    
-    if( !usage(argc, 2, argv_desc) ) {
+    if( argc != 2 ) {
+        char *argv_desc[2] = {argv[1], "<input file>"};
+        usage(2, argv_desc);
         return -1;
     }
 

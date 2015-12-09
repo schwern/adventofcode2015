@@ -23,8 +23,9 @@ int mine_adventcoins(char *start) {
 }
 
 int main(const int argc, char **argv) {
-    char *argv_desc[2] = { argv[0], "<secret key>" };
-    if( !usage(argc, 2, argv_desc) ) {
+    if( argc != 2 ) {
+        char *argv_desc[2] = { argv[0], "<secret key>" };
+        usage(2, argv_desc);
         return -1;
     }
 
