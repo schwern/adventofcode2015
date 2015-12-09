@@ -4,10 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef DEBUG
-#  define DEBUG 0
-#endif
-
 GRegex *Circuit_Line_Re;
 
 static void init_regexes() {

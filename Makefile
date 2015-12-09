@@ -1,7 +1,7 @@
 OPTIMIZE = -g
 WARNINGS = -Wall
 INCLUDE  = -Ilib
-CFLAGS = $(OPTIMIZE) $(WARNINGS) $(INCLUDE)
+CFLAGS  += $(OPTIMIZE) $(WARNINGS) $(INCLUDE)
 CFLAGS  += `pkg-config --cflags glib-2.0`
 LDFLAGS += `pkg-config --libs glib-2.0`
 OBJS=$(patsubst %.c, %.o, $(wildcard lib/*.c))
