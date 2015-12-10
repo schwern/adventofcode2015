@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "file.h"
+#include "common.h"
 #include <glib.h>
 
 #define MAX_LIGHTS 1000

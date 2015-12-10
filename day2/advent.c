@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include "file.h"
+#include "common.h"
 
 typedef struct {
     int paper;

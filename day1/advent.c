@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "file.h"
+#include "common.h"
 
 struct Floors {
     int start_floor;

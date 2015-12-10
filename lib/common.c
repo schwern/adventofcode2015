@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <sys/errno.h>
 #include <string.h>
-#include "file.h"
+#include "common.h"
 
 FILE *open_file(const char *filename, const char *mode) {
     FILE *fp = fopen(filename, mode);

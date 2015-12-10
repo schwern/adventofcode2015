@@ -3,7 +3,7 @@
     #include <stdlib.h>
     #include "advent.y.h"
     #include "advent.l.h"
-    #include "file.h"
+    #include "common.h"
 
     #define MAX_LIGHTS 1000
 
