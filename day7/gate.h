@@ -30,13 +30,14 @@ GateOp Op_RShift;
 typedef struct Gate {
     struct GateProto *proto;
 
-    GateOp *op;
     char *name;
     GateVal value;          // for caching or setting directly
     struct Gate **inputs;
 } Gate;
 
 struct GateProto {
+    GateOp *op;
+    
     GateVal (*get)(Gate *self);
     void (*init)(Gate *self, char *name, va_list inputs);
     void (*destroy)(Gate *self);
