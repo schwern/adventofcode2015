@@ -23,10 +23,16 @@ static void Gate_set_input(Gate *self, const int position, Gate *input) {
     }
 
     self->inputs[position] = input;
+
+    __(self, clear_cache);
 }
 
-static void Gate_set_value(Gate *self, GateVal value) {
-    self->value = value;
+static void Gate_set_cache(Gate *self, GateVal value) {
+    self->cache = value;
+}
+
+static void Gate_clear_cache(Gate *self) {
+    self->cache = 0;
 }
 
 static void Gate_init(Gate *self, char *name) {
@@ -40,7 +46,11 @@ static void Gate_destroy(Gate *self) {
 }
 
 static GateVal ConstGate_get(Gate *self) {
-    return self->value;
+    return self->cache;
+}
+
+static void ConstGate_clear_cache(Gate *self) {
+    return;
 }
 
 static void ConstGate_set_input(Gate *self, const int position, Gate *input) {
@@ -53,7 +63,8 @@ struct GateProto ConstGateProto = {
     .destroy    = Gate_destroy,
     .op         = &Op_Const,
     .set_input  = ConstGate_set_input,
-    .set_value  = Gate_set_value,
+    .set_cache  = Gate_set_cache,
+    .clear_cache= ConstGate_clear_cache,
     .set_op     = Gate_set_op
 };
 
@@ -64,9 +75,10 @@ struct GateProto ConstGateProto = {
         .destroy = Gate_destroy,        \
         .get     = OP##Gate_get,        \
         .op      = &Op_##OP,            \
-        .set_input = Gate_set_input,    \
-        .set_value = Gate_set_value,    \
-        .set_op    = Gate_set_op        \
+        .set_input   = Gate_set_input,    \
+        .set_cache   = Gate_set_cache,    \
+        .clear_cache = Gate_clear_cache,  \
+        .set_op      = Gate_set_op        \
     }
 
 GateVal UndefGate_get(Gate *self) {
@@ -145,6 +157,8 @@ static void Gate_set_op(Gate *self, GateOp *op) {
 
     int num_inputs = self->proto->op->num_inputs;
     self->inputs = realloc(self->inputs, sizeof(Gate) * num_inputs);
+
+    __(self, clear_cache);
 }
 
 GateOp *Op_lookup(char *_opname) {
@@ -178,11 +192,11 @@ GateOp *Op_lookup(char *_opname) {
 #pragma clang diagnostic pop
 
 GateVal Gate_get(Gate *self) {
-    GateVal val = self->value;
+    GateVal val = self->cache;
     
     if( !val ) {
         val = __(self, get);
-        self->value = val;
+        __(self, set_cache, val);
     }
 
     return val;

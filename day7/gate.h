@@ -34,7 +34,7 @@ typedef struct Gate {
     struct GateProto *proto;
 
     char *name;
-    GateVal value;          // for caching or setting directly
+    GateVal cache;
     struct Gate **inputs;
 } Gate;
 
@@ -45,8 +45,9 @@ struct GateProto {
     void (*init)(Gate *self, char *name);
     void (*destroy)(Gate *self);
     void (*set_input)(Gate *self, const int position, Gate *input);
-    void (*set_value)(Gate *self, GateVal value);
     void (*set_op)(Gate *self, GateOp *op);
+    void (*set_cache)(Gate *self, GateVal value);
+    void (*clear_cache)(Gate *self);
 } GateProto;
 
 Gate *Gate_factory(GateOp *op, char *name);

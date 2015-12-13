@@ -54,7 +54,7 @@ static void print_gate_cb(gpointer key, gpointer val, gpointer user_data) {
     GateOp *op = gate->proto->op;
 
     if( op->num_inputs == 0 ) {
-        printf("%s %s", gate->name, op->name);
+        printf("%s %s %d", gate->name, op->name, __(gate, get));
     }
     if( op->num_inputs == 1 ) {
         printf("%s %s %s", gate->name, op->name, gate->inputs[0]->name);
@@ -63,6 +63,12 @@ static void print_gate_cb(gpointer key, gpointer val, gpointer user_data) {
         printf("%s %s %s %s", gate->name, gate->inputs[0]->name, op->name, gate->inputs[1]->name);
     }
     puts("");
+}
+
+static void reset_gate_cache(gpointer key, gpointer val, gpointer unused) {
+    Gate *gate = (Gate *)val;
+
+    __(gate, clear_cache);
 }
 
 static void gates_foreach_sorted(GHashTable *gates, GHFunc cb) {
@@ -142,7 +148,7 @@ static void set_gate_inputs(GHashTable *gates, Gate *gate, char **inputs) {
     /* Turn 123 -> a into a CONST op */
     if( optype == SET && is_number(inputs[0])) {
         __(gate, set_op, &Op_Const);
-        __(gate, set_value, atoi(inputs[0]));
+        __(gate, set_cache, atoi(inputs[0]));
         return;
     }
         
@@ -153,7 +159,7 @@ static void set_gate_inputs(GHashTable *gates, Gate *gate, char **inputs) {
         if( !(input_gate = g_hash_table_lookup(gates, input_str)) ) {
             if( is_number(input_str) ) {
                 input_gate = Gate_factory(&Op_Const, input_str);
-                __(input_gate, set_value, atoi(input_str));
+                __(input_gate, set_cache, atoi(input_str));
             }
             else {
                 input_gate = Gate_factory(&Op_Undef, input_str);
@@ -211,9 +217,9 @@ static GHashTable *read_circuit(FILE *fp) {
 int main(const int argc, char **argv) {
     FILE *input = stdin;
 
-    if( argc > 3 ) {
-        char *argv_desc[3] = {argv[0], "<circuit file>", "<var>"};
-        usage(3, argv_desc);
+    if( argc > 4 ) {
+        char *argv_desc[4] = {argv[0], "<circuit file>", "<var> <override>"};
+        usage(4, argv_desc);
     }
 
     if( argc >= 2 )
@@ -225,7 +231,18 @@ int main(const int argc, char **argv) {
     if( argc >= 3 ) {
         char *var = argv[2];
         Gate *gate = g_hash_table_lookup(gates, var);
-        printf("%s == %d\n", var, Gate_get(gate));
+        GateVal signal = Gate_get(gate);
+        printf("%s == %d\n", var, signal);
+
+        if( argc >= 4 ) {
+            char *override_var = argv[3];
+            Gate *override = g_hash_table_lookup(gates, override_var);
+            g_hash_table_foreach(gates, reset_gate_cache, 0);
+            __(override, set_op, &Op_Const);
+            __(override, set_cache, signal);
+            printf("Overrode %s with %d\n", override_var, signal);
+            printf("%s == %d\n", var, Gate_get(gate));
+        }
     }
     
     g_hash_table_unref(gates);
