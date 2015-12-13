@@ -26,4 +26,8 @@ GRegex *compile_regex(
     GRegexMatchFlags match_options
 );
 
+static inline bool is_empty(char *str) {
+    return str[0] == '\0';
+}
+
 #endif
