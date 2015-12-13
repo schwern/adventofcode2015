@@ -148,31 +148,41 @@ static Gate *read_gate_line(char *line, char **inputs) {
     return gate;
 }
 
+static Gate *make_input_gate(GHashTable *gates, char *var) {
+    Gate *gate = g_hash_table_lookup(gates, var);
+    if( gate )
+        return gate;
+    
+    if( is_number(var) ) {
+        gate = Gate_factory(&Op_Const, var);
+        __(gate, set_cache, atoi(var));
+    }
+    else {
+        gate = Gate_factory(&Op_Undef, var);
+    }
+
+    g_hash_table_insert(gates, gate->name, gate);
+
+    return gate;
+}
+
+static inline void change_gate_to_const(Gate *gate, GateVal val) {
+    __(gate, set_op, &Op_Const);
+    __(gate, set_cache, val);
+}
+
 static void set_gate_inputs(GHashTable *gates, Gate *gate, char **inputs) {
     GateOpType optype = gate->proto->op->type;
 
     /* Turn 123 -> a into a CONST op */
     if( optype == SET && is_number(inputs[0])) {
-        __(gate, set_op, &Op_Const);
-        __(gate, set_cache, atoi(inputs[0]));
+        change_gate_to_const(gate, atoi(inputs[0]));
         return;
     }
         
     for( int i = 0; i < gate->proto->op->num_inputs; i++ ) {
         char *input_str = inputs[i];
-        Gate *input_gate;
-
-        if( !(input_gate = g_hash_table_lookup(gates, input_str)) ) {
-            if( is_number(input_str) ) {
-                input_gate = Gate_factory(&Op_Const, input_str);
-                __(input_gate, set_cache, atoi(input_str));
-            }
-            else {
-                input_gate = Gate_factory(&Op_Undef, input_str);
-            }
-
-            g_hash_table_insert(gates, input_gate->name, input_gate);
-        }
+        Gate *input_gate = make_input_gate(gates, input_str);
 
         __(gate, set_input, i, input_gate);
     }
@@ -250,8 +260,7 @@ int main(const int argc, char **argv) {
             char *override_var = argv[3];
             Gate *override = g_hash_table_lookup(gates, override_var);
             g_hash_table_foreach(gates, reset_gate_cache, 0);
-            __(override, set_op, &Op_Const);
-            __(override, set_cache, signal);
+            change_gate_to_const(override, signal);
             printf("Overrode %s with %d\n", override_var, signal);
             printf("%s == %d\n", var, Gate_get(gate));
         }
