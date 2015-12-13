@@ -185,17 +185,23 @@ static GHashTable *read_circuit(FILE *fp) {
 int main(const int argc, char **argv) {
     FILE *input = stdin;
 
-    if( argc > 2 ) {
-        char *argv_desc[2] = {argv[0], "<circuit file>"};
-        usage(2, argv_desc);
+    if( argc > 3 ) {
+        char *argv_desc[3] = {argv[0], "<circuit file>", "<var>"};
+        usage(3, argv_desc);
     }
 
-    if( argc == 2 )
+    if( argc >= 2 )
         input = open_file(argv[1], "r");
 
     GHashTable *gates = read_circuit(input);
     gates_foreach_sorted(gates, print_gate_cb);
 
+    if( argc >= 3 ) {
+        char *var = argv[2];
+        Gate *gate = g_hash_table_lookup(gates, var);
+        printf("%s == %d\n", var, __(gate, get));
+    }
+    
     g_hash_table_unref(gates);
 
     return 0;
