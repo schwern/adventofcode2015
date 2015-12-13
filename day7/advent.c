@@ -24,8 +24,7 @@ static void init_regexes() {
         Circuit_Line_Re = compile_regex(
             " ^ \\s* "
             " (?: "
-            "   (?<VAL>[[:alnum:]]+) | "
-            "   (?:(?<LEFT>[[:alnum:]]+) \\s+)? (?<OP>[[:alpha:]]+) \\s+ (?<RIGHT>[[:alnum:]]+) "
+            "   (?:(?:(?<LEFT>[[:alnum:]]+) \\s+ )? (?<OP>[[:alpha:]]+) \\s+ )? (?<RIGHT>[[:alnum:]]+) "
             " ) "
             " \\s* -> \\s* "
             " (?<NAME>[[:alpha:]]+) "
@@ -98,10 +97,15 @@ static void process_circuit_line(GHashTable *state, char *line) {
         return;
     }
     
-    char *name = get_match(match, "NAME");
-    char *opname = g_match_info_fetch_named(match, "OP");
-    if( !opname || opname[0] == '\0' )
-        opname = "CONST";
+    char *name   = get_match(match, "NAME");
+    char *opname = get_match(match, "OP");
+    char *right  = get_match(match, "RIGHT");
+    if( !opname || opname[0] == '\0' ) {
+        if( is_number(right) )
+            opname = "CONST";
+        else
+            opname= "SET";
+    }
     
     if( DEBUG )
         fprintf(stderr, "Op: '%s'.\n", opname );
