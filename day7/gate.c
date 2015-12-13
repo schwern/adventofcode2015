@@ -156,7 +156,7 @@ static void Gate_set_op(Gate *self, GateOp *op) {
     }
 
     int num_inputs = self->proto->op->num_inputs;
-    self->inputs = realloc(self->inputs, sizeof(Gate) * num_inputs);
+    self->inputs = realloc(self->inputs, sizeof(Gate *) * num_inputs);
 
     __(self, clear_cache);
 }
