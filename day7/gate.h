@@ -44,6 +44,7 @@ struct GateProto {
     void (*destroy)(Gate *self);
     void (*set_input)(Gate *self, const int position, Gate *input);
     void (*set_value)(Gate *self, GateVal value);
+    void (*set_op)(Gate *self, GateOp *op);
 } GateProto;
 
 Gate *Gate_factory(GateOp *op, char *name);

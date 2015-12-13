@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-GateOp Op_Undef  = { .type = UNDEF,   .num_inputs = 0, .name = "undef"   };
+GateOp Op_Undef  = { .type = UNDEF,  .num_inputs = 0, .name = "undef"   };
 GateOp Op_Const  = { .type = CONST,  .num_inputs = 0, .name = "const"  };
 GateOp Op_Set    = { .type = SET,    .num_inputs = 1, .name = "set"    };
 GateOp Op_Not    = { .type = NOT,    .num_inputs = 1, .name = "not"    };
@@ -11,6 +11,8 @@ GateOp Op_And    = { .type = AND,    .num_inputs = 2, .name = "and"    };
 GateOp Op_Or     = { .type = OR,     .num_inputs = 2, .name = "or"     };
 GateOp Op_LShift = { .type = LSHIFT, .num_inputs = 2, .name = "lshift" };
 GateOp Op_RShift = { .type = RSHIFT, .num_inputs = 2, .name = "rshift" };
+
+static void Gate_set_op(Gate *self, GateOp *op);
 
 static void Gate_set_input(Gate *self, const int position, Gate *input) {
     if( position > self->proto->op->num_inputs ) {
@@ -29,20 +31,12 @@ static void Gate_set_value(Gate *self, GateVal value) {
 
 static void Gate_init(Gate *self, char *name) {
     self->name = strdup(name);
-    
-    int num_inputs = self->proto->op->num_inputs;
-    self->inputs = calloc(num_inputs, sizeof(Gate));
 }
 
 static void Gate_destroy(Gate *self) {
     free(self->name);
     free(self->inputs);
     free(self);
-}
-
-
-static void ConstGate_init(Gate *self, char *name) {
-    self->name = strdup(name);
 }
 
 static GateVal ConstGate_get(Gate *self) {
@@ -53,18 +47,14 @@ static void ConstGate_set_input(Gate *self, const int position, Gate *input) {
     die("Const gate %s does not take an input", self->name);
 }
 
-static void ConstGate_destroy(Gate *self) {
-    free(self->name);
-    free(self);
-}
-
 struct GateProto ConstGateProto = {
     .get        = ConstGate_get,
-    .init       = ConstGate_init,
-    .destroy    = ConstGate_destroy,
+    .init       = Gate_init,
+    .destroy    = Gate_destroy,
     .op         = &Op_Const,
     .set_input  = ConstGate_set_input,
-    .set_value  = Gate_set_value
+    .set_value  = Gate_set_value,
+    .set_op     = Gate_set_op
 };
 
 
@@ -75,7 +65,8 @@ struct GateProto ConstGateProto = {
         .get     = OP##Gate_get,        \
         .op      = &Op_##OP,            \
         .set_input = Gate_set_input,    \
-        .set_value = Gate_set_value     \
+        .set_value = Gate_set_value,    \
+        .set_op    = Gate_set_op        \
     }
 
 GateVal UndefGate_get(Gate *self) {
@@ -121,40 +112,46 @@ GateVal RShiftGate_get(Gate *self) {
 
 DeclareGate(RShift);
 
-Gate *Gate_factory(GateOp *op, char *name) {
-    Gate *gate = malloc(sizeof(Gate));
-    
+static void Gate_set_op(Gate *self, GateOp *op) {
     switch(op->type) {
         case UNDEF:
-            gate->proto = &UndefGateProto;
+            self->proto = &UndefGateProto;
             break;
         case CONST:
-            gate->proto = &ConstGateProto;
+            self->proto = &ConstGateProto;
             break;
         case SET:
-            gate->proto = &SetGateProto;
+            self->proto = &SetGateProto;
             break;
         case NOT:
-            gate->proto = &NotGateProto;
+            self->proto = &NotGateProto;
             break;
         case AND:
-            gate->proto = &AndGateProto;
+            self->proto = &AndGateProto;
             break;
         case OR:
-            gate->proto = &OrGateProto;
+            self->proto = &OrGateProto;
             break;
         case LSHIFT:
-            gate->proto = &LShiftGateProto;
+            self->proto = &LShiftGateProto;
             break;
         case RSHIFT:
-            gate->proto = &RShiftGateProto;
+            self->proto = &RShiftGateProto;
             break;
         default:
             die("Unknown op type %s", op->name);
             break;
     }
-    
-    gate->proto->init(gate, name);
+
+    int num_inputs = self->proto->op->num_inputs;
+    self->inputs = realloc(self->inputs, sizeof(Gate) * num_inputs);
+}
+
+Gate *Gate_factory(GateOp *op, char *name) {
+    Gate *gate = calloc(1, sizeof(Gate));
+
+    Gate_set_op(gate, op);
+    __(gate, init, name);
 
     return gate;
 }
