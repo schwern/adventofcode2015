@@ -39,6 +39,11 @@ static void free_regexes() {
     g_regex_unref(Gate_Line_Re);
 }
 
+static void destroy_gate(gpointer _gate) {
+    Gate *gate = (Gate *)_gate;
+    __(gate, destroy);
+}
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 
@@ -211,9 +216,11 @@ static GHashTable *read_circuit(FILE *fp) {
     char *line = NULL;
     size_t line_size = 0;
     char **inputs = calloc(2, sizeof(char *));
-    GHashTable *gates = g_hash_table_new(
+    GHashTable *gates = g_hash_table_new_full(
         g_str_hash,
-        g_str_equal
+        g_str_equal,
+        NULL,
+        destroy_gate
     );
 
     init_regexes();
