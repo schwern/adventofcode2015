@@ -42,6 +42,7 @@ static void Gate_init(Gate *self, char *name) {
 static void Gate_destroy(Gate *self) {
     free(self->name);
     free(self->inputs);
+    free(self);
 }
 
 static GateVal ConstGate_get(Gate *self) {
