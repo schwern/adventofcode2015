@@ -77,37 +77,37 @@ GateVal UndefGate_get(Gate *self) {
 DeclareGate(Undef);
 
 GateVal SetGate_get(Gate *self) {
-    return __(self->inputs[0], get);
+    return Gate_get(self->inputs[0]);
 }
 
 DeclareGate(Set);
 
 GateVal NotGate_get(Gate *self) {
-    return ~__(self->inputs[0], get);
+    return ~Gate_get(self->inputs[0]);
 }
 
 DeclareGate(Not);
 
 GateVal AndGate_get(Gate *self) {
-    return __(self->inputs[0], get) & __(self->inputs[1], get);
+    return Gate_get(self->inputs[0]) & Gate_get(self->inputs[1]);
 }
 
 DeclareGate(And);
 
 GateVal OrGate_get(Gate *self) {
-    return __(self->inputs[0], get) | __(self->inputs[1], get);
+    return Gate_get(self->inputs[0]) | Gate_get(self->inputs[1]);
 }
 
 DeclareGate(Or);
 
 GateVal LShiftGate_get(Gate *self) {
-    return __(self->inputs[0], get) << __(self->inputs[1], get);
+    return Gate_get(self->inputs[0]) << Gate_get(self->inputs[1]);
 }
 
 DeclareGate(LShift);
 
 GateVal RShiftGate_get(Gate *self) {
-    return __(self->inputs[0], get) >> __(self->inputs[1], get);
+    return Gate_get(self->inputs[0]) >> Gate_get(self->inputs[1]);
 }
 
 DeclareGate(RShift);
@@ -176,6 +176,17 @@ GateOp *Op_lookup(char *_opname) {
 #pragma clang diagnostic ignored "-Wreturn-type"
 }
 #pragma clang diagnostic pop
+
+GateVal Gate_get(Gate *self) {
+    GateVal val = self->value;
+    
+    if( !val ) {
+        val = __(self, get);
+        self->value = val;
+    }
+
+    return val;
+}
 
 Gate *Gate_factory(GateOp *op, char *name) {
     Gate *gate = calloc(1, sizeof(Gate));

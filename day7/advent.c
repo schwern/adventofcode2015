@@ -39,6 +39,9 @@ static void free_regexes() {
     g_regex_unref(Gate_Line_Re);
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+
 static gint cmp_keys(gconstpointer _a, gconstpointer _b) {
     char *a = (char *)_a;
     char *b = (char *)_b;
@@ -68,6 +71,8 @@ static void gates_foreach_sorted(GHashTable *gates, GHFunc cb) {
         cb( k->data, g_hash_table_lookup( gates, k->data ), NULL );
     }
 }
+
+#pragma clang diagnostic pop
 
 static inline char *get_match(GMatchInfo *match, char *key) {
     char *val = g_match_info_fetch_named(match, key);
@@ -215,12 +220,12 @@ int main(const int argc, char **argv) {
         input = open_file(argv[1], "r");
 
     GHashTable *gates = read_circuit(input);
-    gates_foreach_sorted(gates, print_gate_cb);
+    //gates_foreach_sorted(gates, print_gate_cb);
 
     if( argc >= 3 ) {
         char *var = argv[2];
         Gate *gate = g_hash_table_lookup(gates, var);
-        printf("%s == %d\n", var, __(gate, get));
+        printf("%s == %d\n", var, Gate_get(gate));
     }
     
     g_hash_table_unref(gates);

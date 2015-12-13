@@ -50,5 +50,6 @@ struct GateProto {
 } GateProto;
 
 Gate *Gate_factory(GateOp *op, char *name);
+GateVal Gate_get(Gate *self);
 
 #endif
