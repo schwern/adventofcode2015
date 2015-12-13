@@ -188,14 +188,18 @@ static void set_gate_inputs(GHashTable *gates, Gate *gate, char **inputs) {
     }
 }
 
-static Gate *check_duplicate_gate(GHashTable *gates, Gate *gate) {
+static Gate *check_gate_cache(GHashTable *gates, Gate *gate) {
     Gate *cached_gate = g_hash_table_lookup(gates, gate->name);
+
+    /* It's not cached, cache it */
     if( !cached_gate ) {
+        g_hash_table_insert(gates, gate->name, gate);
         return gate;
     }
 
-    if( cached_gate->proto->op->type != UNDEF )
+    if( cached_gate->proto->op->type != UNDEF ) {
         printf("Redefining gate %s\n", gate->name);
+    }
     
     __(cached_gate, set_op, gate->proto->op);
     __(gate, destroy);
@@ -220,8 +224,7 @@ static GHashTable *read_circuit(FILE *fp) {
             printf("Unknown line: %s", line);
         }
         else {
-            gate = check_duplicate_gate(gates, gate);
-            g_hash_table_insert(gates, gate->name, gate);
+            gate = check_gate_cache(gates, gate);
             set_gate_inputs(gates, gate, inputs);
 
             free(inputs[0]);
