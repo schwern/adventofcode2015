@@ -25,10 +25,10 @@ static void init_regexes() {
             " ^ \\s* "
             " (?: "
             "   (?<VAL>[[:alnum:]]+) | "
-            "   (?:(?<LEFT>[[:alnum:]]+) \\s+)? (?<CMD>[[:alpha:]]+) \\s+ (?<RIGHT>[[:alnum:]]+) "
+            "   (?:(?<LEFT>[[:alnum:]]+) \\s+)? (?<OP>[[:alpha:]]+) \\s+ (?<RIGHT>[[:alnum:]]+) "
             " ) "
             " \\s* -> \\s* "
-            " (?<ASSIGN>[[:alpha:]]+) "
+            " (?<NAME>[[:alpha:]]+) "
             " \\s* $ ",
             G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
             0
@@ -61,28 +61,11 @@ static void state_foreach_sorted(GHashTable *state, GHFunc cb) {
     }
 }
 
-static inline GateVal *init_val() {
-    GateVal *val = malloc(sizeof(GateVal));
-    *val = 0;
-    
-    return val;
-}
-
 static inline char *get_match(GMatchInfo *match, char *key) {
     char *val = g_match_info_fetch_named(match, key);
     if( !val ) {
         fprintf(stderr, "%s not found in %s\n", key, g_match_info_get_string(match));
         exit(1);
-    }
-
-    return val;
-}
-
-static inline GateVal *get_var(GHashTable *state, char *key) {
-    GateVal *val = g_hash_table_lookup(state, key);
-    if( !val ) {
-        val = init_val();
-        g_hash_table_insert(state, key, val);
     }
 
     return val;
@@ -101,31 +84,6 @@ static bool is_number(char *key) {
     return true;
 }
 
-static inline GateVal *get_val(GHashTable *state, char *key) {
-    if( is_number(key) ) {
-        GateVal *val = init_val();
-        *val = atoi(key);
-        return val;
-    }
-    else {
-        return get_var(state, key);
-    }
-}
-
-static inline void set_var(GHashTable *state, char *key, GateVal *val) {
-    g_hash_table_replace(state, key, val);
-}
-
-static inline void set_var_value(GHashTable *state, char *key, GateVal _val) {
-    GateVal *val = init_val();
-    *val = _val;
-    set_var(state, key, val);
-}
-
-static inline bool is_cmd(char *have, char *want) {
-    return strcmp(g_ascii_strup(have, -1), g_ascii_strup(want, -1)) == 0 ? true : false;
-}
-
 static void process_circuit_line(GHashTable *state, char *line) {
     GMatchInfo *match;
 
@@ -140,56 +98,18 @@ static void process_circuit_line(GHashTable *state, char *line) {
         return;
     }
     
-    char *assign = get_match(match, "ASSIGN");
-    assign = strdup(assign);
-
-    char *cmd = g_match_info_fetch_named(match, "CMD");
-
+    char *name = get_match(match, "NAME");
+    char *opname = g_match_info_fetch_named(match, "OP");
+    if( !opname || opname[0] == '\0' )
+        opname = "CONST";
+    
     if( DEBUG )
-        fprintf(stderr, "Command: '%s'.\n", cmd );
+        fprintf(stderr, "Op: '%s'.\n", opname );
 
-    if( !cmd || cmd[0] == '\0' ) {
-        GateVal *valp = get_val( state, get_match(match, "VAL") );
-        if( DEBUG )
-            fprintf(stderr, "%d -> %s\n", *valp, assign);
-        set_var(state, assign, valp);
-    }
-    else if(
-        is_cmd(cmd, "AND") || is_cmd(cmd, "OR") ||
-        is_cmd(cmd, "LSHIFT") || is_cmd(cmd, "RSHIFT")
-    ) {
-        char *left  = get_match(match, "LEFT");
-        char *right = get_match(match, "RIGHT");
-        GateVal *lvalp = get_val(state, left);
-        GateVal *rvalp = get_val(state, right);
+    Gate *gate = Gate_factory(Op_lookup(opname), name);
 
-        if( DEBUG )
-            fprintf(stderr, "%s %d %s %s %d -> %s\n", left, *lvalp, cmd, right, *rvalp, assign);
-        
-        if( is_cmd(cmd, "AND") )
-            set_var_value(state, assign, *lvalp & *rvalp);
-        else if( is_cmd(cmd, "OR" ) )
-            set_var_value(state, assign, *lvalp | *rvalp);
-        else if( is_cmd(cmd, "LSHIFT") )
-            set_var_value(state, assign, *lvalp << *rvalp);
-        else
-            set_var_value(state, assign, *lvalp >> *rvalp);
-    }
-    else if( is_cmd(cmd, "NOT" ) ) {
-        char *right = get_match(match, "RIGHT");
-        GateVal *rvalp = get_var(state, right);
-        GateVal *avalp = get_var(state, assign);
-
-        if( DEBUG )
-            fprintf(stderr, "NOT %s %d -> %s %d\n", right, *rvalp, assign, *avalp);
-        
-        *avalp = ~*rvalp;
-    }
-    else {
-        fprintf(stderr, "Unknown command %s for line %s.\n", cmd, line);
-        return;
-    }
-
+    printf("Gate %s with op %s\n", gate->name, gate->proto->op->name);
+    
     g_match_info_free(match);
 }
 
