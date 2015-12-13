@@ -47,13 +47,18 @@ static gint cmp_keys(gconstpointer _a, gconstpointer _b) {
 }
 
 static void print_gate_cb(gpointer key, gpointer val, gpointer user_data) {
-    char *name = (char *)key;
     Gate *gate = (Gate *)val;
     GateOp *op = gate->proto->op;
 
-    printf("Gate %s/%s %s", name, gate->name, op->name);
-    if( op->type != UNDEF )
-        printf(" = %d", __(gate, get));
+    if( op->num_inputs == 0 ) {
+        printf("%s %s", gate->name, op->name);
+    }
+    if( op->num_inputs == 1 ) {
+        printf("%s %s %s", gate->name, op->name, gate->inputs[0]->name);
+    }
+    else if( op->num_inputs == 2 ) {
+        printf("%s %s %s %s", gate->name, gate->inputs[0]->name, op->name, gate->inputs[1]->name);
+    }
     puts("");
 }
 
@@ -156,6 +161,21 @@ static void set_gate_inputs(GHashTable *gates, Gate *gate, char **inputs) {
     }
 }
 
+static Gate *check_duplicate_gate(GHashTable *gates, Gate *gate) {
+    Gate *cached_gate = g_hash_table_lookup(gates, gate->name);
+    if( !cached_gate ) {
+        return gate;
+    }
+
+    if( cached_gate->proto->op->type != UNDEF )
+        printf("Redefining gate %s\n", gate->name);
+    
+    __(cached_gate, set_op, gate->proto->op);
+    __(gate, destroy);
+
+    return cached_gate;
+}
+
 static GHashTable *read_circuit(FILE *fp) {
     char *line = NULL;
     size_t line_size = 0;
@@ -170,6 +190,7 @@ static GHashTable *read_circuit(FILE *fp) {
             printf("Unknown line: %s", line);
         }
         else {
+            gate = check_duplicate_gate(gates, gate);
             g_hash_table_insert(gates, gate->name, gate);
             set_gate_inputs(gates, gate, inputs);
         }
