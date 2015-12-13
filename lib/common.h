@@ -1,3 +1,6 @@
+#ifndef _common_h
+#define _common_h
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <glib.h>
@@ -14,6 +17,8 @@ FILE *open_file(const char *filename, const char *mode);
 
 void usage(int argc, char *desc[]);
 
+void die(char *format, ...);
+
 // Same as g_regex_new, but no error
 GRegex *compile_regex(
     const gchar *pattern,
@@ -21,13 +26,4 @@ GRegex *compile_regex(
     GRegexMatchFlags match_options
 );
 
-void die(char *format, ...) {
-    va_list args;
-    
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputs("\n", stderr);
-
-    exit(1);
-}
+#endif
