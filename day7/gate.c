@@ -147,6 +147,36 @@ static void Gate_set_op(Gate *self, GateOp *op) {
     self->inputs = realloc(self->inputs, sizeof(Gate) * num_inputs);
 }
 
+GateOp *Op_lookup(char *_opname) {
+    char *opname = g_ascii_strdown(_opname, -1);
+
+    /* CHEATING! */
+    switch(opname[0]) {
+        case 'u':
+            return &Op_Undef;
+        case 'c':
+            return &Op_Const;
+        case 's':
+            return &Op_Set;
+        case 'n':
+            return &Op_Not;
+        case 'a':
+            return &Op_And;
+        case 'o':
+            return &Op_Or;
+        case 'l':
+            return &Op_LShift;
+        case 'r':
+            return &Op_RShift;
+        default:
+            die("Unknown op %s", _opname);
+    }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type"
+}
+#pragma clang diagnostic pop
+
 Gate *Gate_factory(GateOp *op, char *name) {
     Gate *gate = calloc(1, sizeof(Gate));
 

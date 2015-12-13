@@ -28,6 +28,8 @@ GateOp Op_Or;
 GateOp Op_LShift;
 GateOp Op_RShift;
 
+GateOp *Op_lookup(char *_opname);
+
 typedef struct Gate {
     struct GateProto *proto;
 
