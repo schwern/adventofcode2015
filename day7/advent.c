@@ -6,8 +6,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <stdint.h>
-
-typedef uint16_t c_signal;
+#include "gate.h"
 
 GRegex *Circuit_Line_Re;
 GRegex *Blank_Line_Re;
@@ -50,7 +49,7 @@ static gint cmp_keys(gconstpointer _a, gconstpointer _b) {
 
 static void print_state_cb(gpointer _key, gpointer _val, gpointer user_data) {
     char *key    = (char *)_key;
-    c_signal val = *(c_signal *)_val;
+    GateVal val = *(GateVal *)_val;
 
     printf("%s: %d\n", key, val);
 }
@@ -62,8 +61,8 @@ static void state_foreach_sorted(GHashTable *state, GHFunc cb) {
     }
 }
 
-static inline c_signal *init_val() {
-    c_signal *val = malloc(sizeof(c_signal));
+static inline GateVal *init_val() {
+    GateVal *val = malloc(sizeof(GateVal));
     *val = 0;
     
     return val;
@@ -79,8 +78,8 @@ static inline char *get_match(GMatchInfo *match, char *key) {
     return val;
 }
 
-static inline c_signal *get_var(GHashTable *state, char *key) {
-    c_signal *val = g_hash_table_lookup(state, key);
+static inline GateVal *get_var(GHashTable *state, char *key) {
+    GateVal *val = g_hash_table_lookup(state, key);
     if( !val ) {
         val = init_val();
         g_hash_table_insert(state, key, val);
@@ -102,9 +101,9 @@ static bool is_number(char *key) {
     return true;
 }
 
-static inline c_signal *get_val(GHashTable *state, char *key) {
+static inline GateVal *get_val(GHashTable *state, char *key) {
     if( is_number(key) ) {
-        c_signal *val = init_val();
+        GateVal *val = init_val();
         *val = atoi(key);
         return val;
     }
@@ -113,12 +112,12 @@ static inline c_signal *get_val(GHashTable *state, char *key) {
     }
 }
 
-static inline void set_var(GHashTable *state, char *key, c_signal *val) {
+static inline void set_var(GHashTable *state, char *key, GateVal *val) {
     g_hash_table_replace(state, key, val);
 }
 
-static inline void set_var_value(GHashTable *state, char *key, c_signal _val) {
-    c_signal *val = init_val();
+static inline void set_var_value(GHashTable *state, char *key, GateVal _val) {
+    GateVal *val = init_val();
     *val = _val;
     set_var(state, key, val);
 }
@@ -150,7 +149,7 @@ static void process_circuit_line(GHashTable *state, char *line) {
         fprintf(stderr, "Command: '%s'.\n", cmd );
 
     if( !cmd || cmd[0] == '\0' ) {
-        c_signal *valp = get_val( state, get_match(match, "VAL") );
+        GateVal *valp = get_val( state, get_match(match, "VAL") );
         if( DEBUG )
             fprintf(stderr, "%d -> %s\n", *valp, assign);
         set_var(state, assign, valp);
@@ -161,8 +160,8 @@ static void process_circuit_line(GHashTable *state, char *line) {
     ) {
         char *left  = get_match(match, "LEFT");
         char *right = get_match(match, "RIGHT");
-        c_signal *lvalp = get_val(state, left);
-        c_signal *rvalp = get_val(state, right);
+        GateVal *lvalp = get_val(state, left);
+        GateVal *rvalp = get_val(state, right);
 
         if( DEBUG )
             fprintf(stderr, "%s %d %s %s %d -> %s\n", left, *lvalp, cmd, right, *rvalp, assign);
@@ -178,8 +177,8 @@ static void process_circuit_line(GHashTable *state, char *line) {
     }
     else if( is_cmd(cmd, "NOT" ) ) {
         char *right = get_match(match, "RIGHT");
-        c_signal *rvalp = get_var(state, right);
-        c_signal *avalp = get_var(state, assign);
+        GateVal *rvalp = get_var(state, right);
+        GateVal *avalp = get_var(state, assign);
 
         if( DEBUG )
             fprintf(stderr, "NOT %s %d -> %s %d\n", right, *rvalp, assign, *avalp);

@@ -26,6 +26,8 @@ $(ADVENTS) : $(OBJS)
 day6/advent : force-look
 	cd day6; $(MAKE) advent
 
+day7/advent : day7/gate.o $(OBJS)
+
 clean:
 	rm -f $(OBJS)
 	rm -f $(ADVENTS)
