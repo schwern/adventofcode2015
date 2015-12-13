@@ -10,7 +10,7 @@
 typedef uint16_t GateVal;
 
 typedef enum {
-    CONST, SET, NOT, AND, OR, LSHIFT, RSHIFT
+    CONST, SET, NOT, AND, OR, LSHIFT, RSHIFT, UNDEF
 } GateOpType;
 
 typedef struct GateOp {
@@ -19,6 +19,7 @@ typedef struct GateOp {
     char *name;
 } GateOp;
 
+GateOp Op_Undef;
 GateOp Op_Const;
 GateOp Op_Set;
 GateOp Op_Not;
@@ -39,10 +40,12 @@ struct GateProto {
     GateOp *op;
     
     GateVal (*get)(Gate *self);
-    void (*init)(Gate *self, char *name, va_list inputs);
+    void (*init)(Gate *self, char *name);
     void (*destroy)(Gate *self);
+    void (*set_input)(Gate *self, const int position, Gate *input);
+    void (*set_value)(Gate *self, GateVal value);
 } GateProto;
 
-Gate *Gate_factory(GateOp *op, char *name, ...);
+Gate *Gate_factory(GateOp *op, char *name);
 
 #endif
