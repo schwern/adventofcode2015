@@ -122,23 +122,29 @@ static Gate *read_gate_line(char *line, char **inputs) {
     char *right  = get_match(match, "RIGHT");
     char *left   = get_match(match, "LEFT");
     if( is_empty(opname) ) {
-        opname= "SET";
+        /* Allow opname to be consistenty freed */
+        opname = realloc(opname, 4);
+        strlcpy(opname, "SET", 4);
     }
     
     Gate *gate = Gate_factory(Op_lookup(opname), name);
 
     /* For "OP right", right is the first input */
     if( is_empty(left) ) {
-        inputs[0] = strdup(right);
+        inputs[0] = right;
+        /* Return left so inputs can be consistently freed */
+        inputs[1] = left;
     }
     /* For "left OP right", left is the first input */
     else {
-        inputs[0] = strdup(left);
-        inputs[1] = strdup(right);
+        inputs[0] = left;
+        inputs[1] = right;
     }
     
     g_match_info_free(match);
-
+    free(name);
+    free(opname);
+    
     return gate;
 }
 
@@ -165,7 +171,7 @@ static void set_gate_inputs(GHashTable *gates, Gate *gate, char **inputs) {
                 input_gate = Gate_factory(&Op_Undef, input_str);
             }
 
-            g_hash_table_insert(gates, input_str, input_gate);
+            g_hash_table_insert(gates, input_gate->name, input_gate);
         }
 
         __(gate, set_input, i, input_gate);
@@ -190,8 +196,11 @@ static Gate *check_duplicate_gate(GHashTable *gates, Gate *gate) {
 static GHashTable *read_circuit(FILE *fp) {
     char *line = NULL;
     size_t line_size = 0;
-    char **inputs = calloc(2, sizeof(char));
-    GHashTable *gates = g_hash_table_new(g_str_hash, g_str_equal);
+    char **inputs = calloc(2, sizeof(char *));
+    GHashTable *gates = g_hash_table_new(
+        g_str_hash,
+        g_str_equal
+    );
 
     init_regexes();
     
@@ -204,6 +213,9 @@ static GHashTable *read_circuit(FILE *fp) {
             gate = check_duplicate_gate(gates, gate);
             g_hash_table_insert(gates, gate->name, gate);
             set_gate_inputs(gates, gate, inputs);
+
+            free(inputs[0]);
+            free(inputs[1]);
         }
     }
     free(line);
@@ -244,8 +256,8 @@ int main(const int argc, char **argv) {
             printf("%s == %d\n", var, Gate_get(gate));
         }
     }
-    
-    g_hash_table_unref(gates);
+
+    g_hash_table_destroy(gates);
 
     return 0;
 }

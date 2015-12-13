@@ -42,7 +42,6 @@ static void Gate_init(Gate *self, char *name) {
 static void Gate_destroy(Gate *self) {
     free(self->name);
     free(self->inputs);
-    free(self);
 }
 
 static GateVal ConstGate_get(Gate *self) {
@@ -163,33 +162,42 @@ static void Gate_set_op(Gate *self, GateOp *op) {
 
 GateOp *Op_lookup(char *_opname) {
     char *opname = g_ascii_strdown(_opname, -1);
-
+    GateOp *op = NULL;
+    
     /* CHEATING! */
     switch(opname[0]) {
         case 'u':
-            return &Op_Undef;
+            op = &Op_Undef;
+            break;
         case 'c':
-            return &Op_Const;
+            op = &Op_Const;
+            break;
         case 's':
-            return &Op_Set;
+            op = &Op_Set;
+            break;
         case 'n':
-            return &Op_Not;
+            op = &Op_Not;
+            break;
         case 'a':
-            return &Op_And;
+            op = &Op_And;
+            break;
         case 'o':
-            return &Op_Or;
+            op = &Op_Or;
+            break;
         case 'l':
-            return &Op_LShift;
+            op = &Op_LShift;
+            break;
         case 'r':
-            return &Op_RShift;
+            op = &Op_RShift;
+            break;
         default:
             die("Unknown op %s", _opname);
     }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-type"
+    free(opname);
+    
+    return op;
 }
-#pragma clang diagnostic pop
 
 GateVal Gate_get(Gate *self) {
     GateVal val = self->cache;

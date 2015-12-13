@@ -29,7 +29,7 @@ GRegex *compile_regex(
     GRegexCompileFlags compile_options,
     GRegexMatchFlags match_options
 ) {
-    GError *error;
+    GError *error = NULL;
 
     GRegex *re = g_regex_new(pattern, compile_options, match_options, &error);
 
