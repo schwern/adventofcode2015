@@ -8,59 +8,54 @@ typedef struct {
     int encoding_size;
 } StringInfo;
 
-static StringInfo string_info(char *line) {
-    StringInfo info = { .string_size = 0, .mem_size = 0, .encoding_size = 2 };
+static void string_info(char *line, void *_info) {
+    StringInfo *info = (StringInfo *)_info;
+    StringInfo lineinfo = { .string_size = 0, .mem_size = 0, .encoding_size = 2 };
 
     for( const char *pos = line; *pos; pos++ ) {
         switch(pos[0]) {
             case '\\':
-                info.string_size++;
-                info.encoding_size+=2;
+                lineinfo.string_size++;
+                lineinfo.encoding_size+=2;
                 pos++;
                 switch(pos[0]) {
                     case 'x':
-                        info.string_size += 3;
-                        info.mem_size++;
-                        info.encoding_size += 3;
+                        lineinfo.string_size += 3;
+                        lineinfo.mem_size++;
+                        lineinfo.encoding_size += 3;
                         pos += 2;
                         break;
                     default:
-                        info.string_size++;
-                        info.mem_size++;
-                        info.encoding_size += 2;
+                        lineinfo.string_size++;
+                        lineinfo.mem_size++;
+                        lineinfo.encoding_size += 2;
                         break;
                 }
                 break;
             case '"':
-                info.string_size++;
-                info.encoding_size+=2;
+                lineinfo.string_size++;
+                lineinfo.encoding_size+=2;
                 break;
             case '\n':
             case ' ':
                 break;
             default:
-                info.string_size++;
-                info.mem_size++;
-                info.encoding_size++;
+                lineinfo.string_size++;
+                lineinfo.mem_size++;
+                lineinfo.encoding_size++;
                 break;
         }
     }
 
-    return info;
+    info->string_size   += lineinfo.string_size;
+    info->mem_size      += lineinfo.mem_size;
+    info->encoding_size += lineinfo.encoding_size;
 }
 
 static StringInfo read_strings(FILE *input) {
-    char *line = NULL;
-    size_t linelen = 0;
     StringInfo info = { .string_size = 0, .mem_size = 0 };
     
-    while( getline(&line, &linelen, input) > 0 ) {
-        StringInfo lineinfo = string_info(line);
-        info.string_size += lineinfo.string_size;
-        info.mem_size    += lineinfo.mem_size;
-        info.encoding_size += lineinfo.encoding_size;
-    }
-    free(line);
+    foreach_line(input, string_info, &info);
     
     return info;
 }

@@ -15,6 +15,17 @@ FILE *open_file(const char *filename, const char *mode) {
     return fp;
 }
 
+void foreach_line(FILE *fp, LineCB cb, void *cb_data) {
+    char *line = NULL;
+    size_t line_len = 0;
+
+    while( getline(&line, &line_len, fp) > 0 ) {
+        cb(line, cb_data);
+    }
+
+    free(line);
+}
+
 void usage(int argc, char *desc[]) {
     fputs("Usage:", stderr);
     for( int i = 0; i < argc; i++ ) {

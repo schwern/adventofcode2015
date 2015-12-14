@@ -13,7 +13,11 @@
 #  define DEBUG 0
 #endif
 
+typedef void (*LineCB)(char *line, void *cb_data);
+
 FILE *open_file(const char *filename, const char *mode);
+
+void foreach_line(FILE *line, LineCB cb, void *cb_data);
 
 void usage(int argc, char *desc[]);
 
