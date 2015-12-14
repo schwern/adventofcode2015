@@ -12,7 +12,7 @@ ADVENTS=$(addsuffix /advent, $(DAYS))
 all : Makefile $(ADVENTS)
 
 force-look :
-	true
+	@true
 
 echo :
 	@echo OBJS $(OBJS)
@@ -24,7 +24,7 @@ $(OBJS) : $(HEADERS)
 
 $(ADVENTS) : $(OBJS)
 day6/advent : force-look
-	cd day6; $(MAKE) advent
+	@cd day6 && $(MAKE) advent
 
 day7/advent : day7/gate.o $(OBJS)
 
