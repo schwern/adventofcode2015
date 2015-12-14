@@ -13,6 +13,8 @@
 #  define DEBUG 0
 #endif
 
+#define TWOD(array, x, y) array[x + (y*x)]
+
 typedef void (*LineCB)(char *line, void *cb_data);
 
 FILE *open_file(const char *filename, const char *mode);
