@@ -10,9 +10,8 @@ typedef struct {
 
 static StringInfo string_info(char *line) {
     StringInfo info = { .string_size = 0, .mem_size = 0, .encoding_size = 2 };
-    char *pos;
 
-    for( pos = line; *pos; *pos++ ) {
+    for( const char *pos = line; *pos; pos++ ) {
         switch(pos[0]) {
             case '\\':
                 info.string_size++;
