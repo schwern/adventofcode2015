@@ -69,7 +69,9 @@ static void Graph_add(Graph *self, short from, short to, short distance) {
     if( from > max_nodes || to > max_nodes )
         die("%d is too big, the graph can only handle %d nodes", MAX(from, to), max_nodes);
 
+    /* Edge costs are symetrical */
     TWOD(self->nodes, from, to, self->max_nodes) = distance;
+    TWOD(self->nodes, to, from, self->max_nodes) = distance;
 
     /* Increase the number of nodes, if necessary */
     if( from > num_nodes || to > num_nodes )
