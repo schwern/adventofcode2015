@@ -69,7 +69,7 @@ static void Graph_add(Graph *self, short from, short to, short distance) {
     if( from > max_nodes || to > max_nodes )
         die("%d is too big, the graph can only handle %d nodes", MAX(from, to), max_nodes);
 
-    TWOD(self->nodes, from, to) = distance;
+    TWOD(self->nodes, from, to, self->max_nodes) = distance;
 
     /* Increase the number of nodes, if necessary */
     if( from > num_nodes || to > num_nodes )
@@ -81,6 +81,21 @@ static void Graph_add_named(Graph *self, char *from, char *to, short distance) {
     short to_num   = Graph_lookup_or_add(self, to);
 
     Graph_add(self, from_num, to_num, distance);
+}
+
+static void Graph_print(Graph *self) {
+    for(short x = 0; x < self->num_nodes; x++) {
+        for(short y = 0; y < self->num_nodes; y++) {
+            short distance = TWOD(self->nodes, x, y, self->max_nodes);
+
+            if( distance ) {
+                char *x_name = self->node2name[x];
+                char *y_name = self->node2name[y];
+
+                printf("%s/%d to %s/%d = %d\n", x_name, x, y_name, y, distance);
+            }
+        }
+    }
 }
 
 
@@ -119,7 +134,6 @@ static void read_node(char *line, void *_graph) {
         char *to                = g_match_info_fetch_named(match, "TO");
         char *distance_str      = g_match_info_fetch_named(match, "DISTANCE");
         short distance = (short)atoi(distance_str);
-        fprintf(stderr, "From %s to %s = %d\n", from, to, distance);
         Graph_add_named(graph, from, to, distance);
         
         g_match_info_free(match);
@@ -156,11 +170,7 @@ int main(int argc, char **argv) {
 
     Graph *graph = read_graph(input);
 
-    printf("%d\n", graph->num_nodes);
-
-    for( int i = 0; i < graph->num_nodes; i++ ) {
-        printf("%d -> %s\n", i, graph->node2name[i]);
-    }
+    Graph_print(graph);
     
     Graph_destroy(graph);
     
