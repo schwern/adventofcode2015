@@ -3,8 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-
-#define EDGE(graph, x, y) TWOD(graph->nodes, x, y, graph->max_nodes)
+#include <assert.h>
 
 typedef struct {
     GHashTable *name2node;
@@ -40,6 +39,139 @@ static void Graph_destroy(Graph *self) {
     free(self->node2name);
     
     free(self);
+}
+
+#define EDGE(graph, x, y) TWOD(graph->nodes, x, y, graph->max_nodes)
+
+/* Because we store distances as unsigned shorts to save memory, we
+   can't represent infinity for no connection.  0 or MAX_INT are our
+   choices.  0 is a problem when comparing, MAX_INT is a problem when
+   adding.  So use floating point infinity when calculating
+   distances */
+static inline float Graph_edge_cost(Graph *self, short x, short y) {
+    float cost = EDGE(self, x, y);
+    return cost == 0 ? INFINITY : cost;
+}
+
+typedef short GraphNodeSet;
+
+static inline GraphNodeSet GraphNodeSet_fill(short size) {
+    return (1<<size)-1;
+}
+
+/* Convert a node index to a bitmask on GraphNodeSet */
+static inline short GraphNodeSet_mask(short x) {
+    return 1 << x;
+}
+
+static inline bool GraphNodeSet_is_only_one_in_set(GraphNodeSet set, short x) {
+    return GraphNodeSet_mask(x) == set;
+}
+
+static inline bool GraphNodeSet_is_in_set(GraphNodeSet set, short x) {
+    return GraphNodeSet_mask(x) & set;
+}
+
+static inline GraphNodeSet GraphNodeSet_remove_from_set(GraphNodeSet set, short x) {
+    return ~GraphNodeSet_mask(x) & set;
+}
+
+static inline char *GraphNodeSet_to_human(GraphNodeSet set) {
+    short bits = sizeof(GraphNodeSet)*8;
+    char *human = calloc(1, bits + 1);
+
+    for( short i = 0; i < bits; i++ ) {
+        short idx = bits - i - 1;
+        human[idx] = GraphNodeSet_is_in_set(set, i) ? '1' : '0';
+    }
+
+    return human;
+}
+
+static inline GraphNodeSet GraphNodeSet_flip(GraphNodeSet set, short x, short y) {
+    return set ^ (GraphNodeSet_mask(x) | GraphNodeSet_mask(y));
+}
+
+static float Graph_min_cost(Graph *self, short start, short next, GraphNodeSet visited) {
+    if( DEBUG ) {
+        char *human = GraphNodeSet_to_human(visited);
+        fprintf(stderr, "min_cost(%p, %d, %d, %s)\n", self, start, next, human);
+        free(human);
+    }
+    
+    /* We could return 0, but it probably indicates an error in the algorithm */
+    assert( start != next );
+
+    /* We must not have already visited the next node */
+    assert( !GraphNodeSet_is_in_set(visited, next) );
+    
+    /* Symmetrical optimization.
+           min_cost(x, y, visited) == min_cost(y, x, visited ^ (x|y))
+       That is, if you swap your start and end points, but visit the same places
+       in-between, it's going to be the same minimum distance. */
+    if( start > next ) {
+        return Graph_min_cost( self, next, start, GraphNodeSet_flip(visited, start, next) );
+    }
+
+    /* Figure out what it would cost to come from each visited node */
+    float cost = INFINITY;
+    for( short prev = 0; prev < self->num_nodes; prev++ ) {
+        if( prev == start ) {
+            /* Only the starting point has been visited, next must be one hop away */
+            if( GraphNodeSet_is_only_one_in_set(visited, start) ) {
+                float edge_cost = Graph_edge_cost(self, start, next);
+                if( DEBUG )
+                    fprintf(stderr, "Starting edge %d to %d = %f\n", start, next, edge_cost);
+                return edge_cost;
+            }
+            /* We can't have come from the start if others have been visited */
+            else
+                continue;
+        }
+
+        if( DEBUG )
+            fprintf(stderr, "cost = %f\n", cost);
+        
+        /* This node was previously visited */
+        if( GraphNodeSet_is_in_set(visited, prev) ) {
+            /* The edge cost to get from prev to next */
+            float prev_cost = Graph_edge_cost(self, next, prev);
+
+            if( DEBUG )
+                fprintf(stderr, "prev edge cost = %f\n", prev_cost);
+            
+            /* No point in continuing, it's more expensive than another route */
+            if( prev_cost > cost )
+                continue;
+
+            /* The cost to back to the start from prev */
+            prev_cost += Graph_min_cost(self, start, prev, GraphNodeSet_remove_from_set(visited, prev));
+
+            if( DEBUG )
+                fprintf(stderr, "prev_cost = %f\n", prev_cost);
+            
+            /* Is this the best yet? */
+            cost = MIN(cost, prev_cost);
+        }
+    }
+
+    return cost;
+}
+
+static short Graph_shortest_route(Graph *self) {
+    float cost = INFINITY;
+    for(short start = 0; start < self->num_nodes; start++) {
+        for( short end = start+1; end < self->num_nodes; end++) {
+            GraphNodeSet visited = 0;
+            visited = GraphNodeSet_fill(self->num_nodes);
+            visited = GraphNodeSet_remove_from_set(visited, end);
+            if( DEBUG )
+                fprintf(stderr, "Trying start to end\n");
+            cost = MIN( cost, Graph_min_cost(self, start, end, visited) );
+        }
+    }
+
+    return cost;
 }
 
 static short Graph_lookup_or_add(Graph *self, char *name) {
@@ -89,20 +221,16 @@ static void Graph_print(Graph *self) {
     for(short x = 0; x < self->num_nodes; x++) {
         for(short y = 0; y < self->num_nodes; y++) {
             short distance = EDGE(self, x, y);
+            float cost     = Graph_edge_cost(self, x, y);
 
             if( distance ) {
                 char *x_name = self->node2name[x];
                 char *y_name = self->node2name[y];
 
-                printf("%s/%d to %s/%d = %d\n", x_name, x, y_name, y, distance);
+                printf("%s/%d to %s/%d = %d/%f\n", x_name, x, y_name, y, distance, cost);
             }
         }
     }
-}
-
-
-static inline float Graph_edge_cost(Graph *self, short x, short y) {
-    return EDGE(self, x, y) || INFINITY;
 }
 
 
@@ -177,7 +305,10 @@ int main(int argc, char **argv) {
 
     Graph *graph = read_graph(input);
 
-    Graph_print(graph);
+    if( DEBUG )
+        Graph_print(graph);
+
+    printf("%d\n", Graph_shortest_route(graph));
     
     Graph_destroy(graph);
     
