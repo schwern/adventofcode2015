@@ -14,9 +14,6 @@ typedef struct {
     short num_nodes;
 } Graph;
 
-static void Graph_key_destroy(gpointer key) {
-    free(key);
-}
 
 static Graph *Graph_new(int max_nodes) {
     Graph *graph = malloc(sizeof(Graph));
@@ -25,7 +22,7 @@ static Graph *Graph_new(int max_nodes) {
     graph->nodes      = calloc(max_nodes * max_nodes, sizeof(*(graph->node2name)));
     graph->name2node  = g_hash_table_new_full(
         g_str_hash, g_str_equal,
-        Graph_key_destroy, Graph_key_destroy
+        free, free
     );
 
     graph->num_nodes = 0;
