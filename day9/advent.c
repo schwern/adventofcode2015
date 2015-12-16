@@ -15,7 +15,7 @@ typedef struct {
 } Graph;
 
 
-static Graph *Graph_new(int max_nodes) {
+static Graph *Graph_new(short max_nodes) {
     Graph *graph = malloc(sizeof(Graph));
 
     graph->node2name  = calloc(max_nodes, sizeof(*(graph->node2name)));
@@ -157,7 +157,7 @@ static void read_node(char *line, void *_graph) {
 }
 
 static Graph *read_graph(FILE *input) {
-    Graph *graph = Graph_new(100);
+    Graph *graph = Graph_new(20);
 
     init_regexes();
 
