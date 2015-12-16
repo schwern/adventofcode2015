@@ -2,6 +2,9 @@
 #include "glib.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+
+#define EDGE(graph, x, y) TWOD(graph->nodes, x, y, graph->max_nodes)
 
 typedef struct {
     GHashTable *name2node;
@@ -70,8 +73,8 @@ static void Graph_add(Graph *self, short from, short to, short distance) {
         die("%d is too big, the graph can only handle %d nodes", MAX(from, to), max_nodes);
 
     /* Edge costs are symetrical */
-    TWOD(self->nodes, from, to, self->max_nodes) = distance;
-    TWOD(self->nodes, to, from, self->max_nodes) = distance;
+    EDGE(self, from, to) = distance;
+    EDGE(self, to, from) = distance;
 
     /* Increase the number of nodes, if necessary */
     if( from > num_nodes || to > num_nodes )
@@ -88,7 +91,7 @@ static void Graph_add_named(Graph *self, char *from, char *to, short distance) {
 static void Graph_print(Graph *self) {
     for(short x = 0; x < self->num_nodes; x++) {
         for(short y = 0; y < self->num_nodes; y++) {
-            short distance = TWOD(self->nodes, x, y, self->max_nodes);
+            short distance = EDGE(self, x, y);
 
             if( distance ) {
                 char *x_name = self->node2name[x];
@@ -98,6 +101,11 @@ static void Graph_print(Graph *self) {
             }
         }
     }
+}
+
+
+static inline float Graph_edge_cost(Graph *self, short x, short y) {
+    return EDGE(self, x, y) || INFINITY;
 }
 
 
