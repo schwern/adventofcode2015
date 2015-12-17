@@ -5,10 +5,12 @@
 #include <math.h>
 #include <assert.h>
 
+typedef unsigned short GraphDistance;
+
 typedef struct {
     GHashTable *name2node;
     char **node2name;
-    short *nodes;
+    GraphDistance *nodes;
     short max_nodes;
     short num_nodes;
 } Graph;
@@ -194,7 +196,7 @@ static short Graph_lookup_or_add(Graph *self, char *name) {
     return *num;
 }
 
-static void Graph_add(Graph *self, short from, short to, short distance) {
+static void Graph_add(Graph *self, short from, short to, GraphDistance distance) {
     short num_nodes = self->num_nodes;
     short max_nodes = self->max_nodes;
     
@@ -210,7 +212,7 @@ static void Graph_add(Graph *self, short from, short to, short distance) {
         self->num_nodes = MAX(from, to);
 }
 
-static void Graph_add_named(Graph *self, char *from, char *to, short distance) {
+static void Graph_add_named(Graph *self, char *from, char *to, GraphDistance distance) {
     short from_num = Graph_lookup_or_add(self, from);
     short to_num   = Graph_lookup_or_add(self, to);
 
@@ -220,8 +222,8 @@ static void Graph_add_named(Graph *self, char *from, char *to, short distance) {
 static void Graph_print(Graph *self) {
     for(short x = 0; x < self->num_nodes; x++) {
         for(short y = 0; y < self->num_nodes; y++) {
-            short distance = EDGE(self, x, y);
-            float cost     = Graph_edge_cost(self, x, y);
+            GraphDistance distance = EDGE(self, x, y);
+            float cost             = Graph_edge_cost(self, x, y);
 
             if( distance ) {
                 char *x_name = self->node2name[x];
@@ -268,7 +270,7 @@ static void read_node(char *line, void *_graph) {
         char *from              = g_match_info_fetch_named(match, "FROM");
         char *to                = g_match_info_fetch_named(match, "TO");
         char *distance_str      = g_match_info_fetch_named(match, "DISTANCE");
-        short distance = (short)atoi(distance_str);
+        GraphDistance distance = (GraphDistance)atoi(distance_str);
         Graph_add_named(graph, from, to, distance);
         
         g_match_info_free(match);
