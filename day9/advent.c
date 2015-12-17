@@ -7,16 +7,19 @@
 
 typedef unsigned short GraphDistance;
 
+/* Let's face it, this isn't going to work for even 255 nodes */
+typedef uint8_t GraphNodeNum;
+
 typedef struct {
     GHashTable *name2node;
     char **node2name;
     GraphDistance *nodes;
-    short max_nodes;
-    short num_nodes;
+    GraphNodeNum max_nodes;
+    GraphNodeNum num_nodes;
 } Graph;
 
 
-static Graph *Graph_new(short max_nodes) {
+static Graph *Graph_new(GraphNodeNum max_nodes) {
     Graph *graph = malloc(sizeof(Graph));
 
     graph->node2name  = calloc(max_nodes, sizeof(*(graph->node2name)));
@@ -50,51 +53,52 @@ static void Graph_destroy(Graph *self) {
    choices.  0 is a problem when comparing, MAX_INT is a problem when
    adding.  So use floating point infinity when calculating
    distances */
-static inline float Graph_edge_cost(Graph *self, short x, short y) {
+static inline float Graph_edge_cost(Graph *self, GraphNodeNum x, GraphNodeNum y) {
     float cost = EDGE(self, x, y);
     return cost == 0 ? INFINITY : cost;
 }
 
-typedef short GraphNodeSet;
+/* XXX This isn't big enough XXX */
+typedef int GraphNodeSet;
 
-static inline GraphNodeSet GraphNodeSet_fill(short size) {
+static inline GraphNodeSet GraphNodeSet_fill(GraphNodeNum size) {
     return (1<<size)-1;
 }
 
 /* Convert a node index to a bitmask on GraphNodeSet */
-static inline short GraphNodeSet_mask(short x) {
+static inline GraphNodeSet GraphNodeSet_mask(GraphNodeNum x) {
     return 1 << x;
 }
 
-static inline bool GraphNodeSet_is_only_one_in_set(GraphNodeSet set, short x) {
+static inline bool GraphNodeSet_is_only_one_in_set(GraphNodeSet set, GraphNodeNum x) {
     return GraphNodeSet_mask(x) == set;
 }
 
-static inline bool GraphNodeSet_is_in_set(GraphNodeSet set, short x) {
+static inline bool GraphNodeSet_is_in_set(GraphNodeSet set, GraphNodeNum x) {
     return GraphNodeSet_mask(x) & set;
 }
 
-static inline GraphNodeSet GraphNodeSet_remove_from_set(GraphNodeSet set, short x) {
+static inline GraphNodeSet GraphNodeSet_remove_from_set(GraphNodeSet set, GraphNodeNum x) {
     return ~GraphNodeSet_mask(x) & set;
 }
 
 static inline char *GraphNodeSet_to_human(GraphNodeSet set) {
-    short bits = sizeof(GraphNodeSet)*8;
+    GraphNodeNum bits = sizeof(GraphNodeSet)*8;
     char *human = calloc(1, bits + 1);
 
-    for( short i = 0; i < bits; i++ ) {
-        short idx = bits - i - 1;
+    for( GraphNodeNum i = 0; i < bits; i++ ) {
+        GraphNodeNum idx = bits - i - 1;
         human[idx] = GraphNodeSet_is_in_set(set, i) ? '1' : '0';
     }
 
     return human;
 }
 
-static inline GraphNodeSet GraphNodeSet_flip(GraphNodeSet set, short x, short y) {
+static inline GraphNodeSet GraphNodeSet_flip(GraphNodeSet set, GraphNodeNum x, GraphNodeNum y) {
     return set ^ (GraphNodeSet_mask(x) | GraphNodeSet_mask(y));
 }
 
-static float Graph_min_cost(Graph *self, short start, short next, GraphNodeSet visited) {
+static float Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, GraphNodeSet visited) {
     if( DEBUG ) {
         char *human = GraphNodeSet_to_human(visited);
         fprintf(stderr, "min_cost(%p, %d, %d, %s)\n", self, start, next, human);
@@ -117,7 +121,7 @@ static float Graph_min_cost(Graph *self, short start, short next, GraphNodeSet v
 
     /* Figure out what it would cost to come from each visited node */
     float cost = INFINITY;
-    for( short prev = 0; prev < self->num_nodes; prev++ ) {
+    for( GraphNodeNum prev = 0; prev < self->num_nodes; prev++ ) {
         if( prev == start ) {
             /* Only the starting point has been visited, next must be one hop away */
             if( GraphNodeSet_is_only_one_in_set(visited, start) ) {
@@ -160,10 +164,10 @@ static float Graph_min_cost(Graph *self, short start, short next, GraphNodeSet v
     return cost;
 }
 
-static short Graph_shortest_route(Graph *self) {
+static int Graph_shortest_route_cost(Graph *self) {
     float cost = INFINITY;
-    for(short start = 0; start < self->num_nodes; start++) {
-        for( short end = start+1; end < self->num_nodes; end++) {
+    for(GraphNodeNum start = 0; start < self->num_nodes; start++) {
+        for( GraphNodeNum end = start+1; end < self->num_nodes; end++) {
             GraphNodeSet visited = 0;
             visited = GraphNodeSet_fill(self->num_nodes);
             visited = GraphNodeSet_remove_from_set(visited, end);
@@ -176,12 +180,12 @@ static short Graph_shortest_route(Graph *self) {
     return cost;
 }
 
-static short Graph_lookup_or_add(Graph *self, char *name) {
+static GraphNodeNum Graph_lookup_or_add(Graph *self, char *name) {
     GHashTable *name2node = self->name2node;
-    short *num = g_hash_table_lookup( name2node, name );
+    GraphNodeNum *num = g_hash_table_lookup( name2node, name );
     
     if( !num ) {
-        num = malloc(sizeof(short));
+        num = malloc(sizeof(num));
         *num = self->num_nodes;
 
         char *name_dup = strdup(name);
@@ -196,9 +200,9 @@ static short Graph_lookup_or_add(Graph *self, char *name) {
     return *num;
 }
 
-static void Graph_add(Graph *self, short from, short to, GraphDistance distance) {
-    short num_nodes = self->num_nodes;
-    short max_nodes = self->max_nodes;
+static void Graph_add(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphDistance distance) {
+    GraphNodeNum num_nodes = self->num_nodes;
+    GraphNodeNum max_nodes = self->max_nodes;
     
     if( from > max_nodes || to > max_nodes )
         die("%d is too big, the graph can only handle %d nodes", MAX(from, to), max_nodes);
@@ -213,15 +217,15 @@ static void Graph_add(Graph *self, short from, short to, GraphDistance distance)
 }
 
 static void Graph_add_named(Graph *self, char *from, char *to, GraphDistance distance) {
-    short from_num = Graph_lookup_or_add(self, from);
-    short to_num   = Graph_lookup_or_add(self, to);
+    GraphNodeNum from_num = Graph_lookup_or_add(self, from);
+    GraphNodeNum to_num   = Graph_lookup_or_add(self, to);
 
     Graph_add(self, from_num, to_num, distance);
 }
 
 static void Graph_print(Graph *self) {
-    for(short x = 0; x < self->num_nodes; x++) {
-        for(short y = 0; y < self->num_nodes; y++) {
+    for(GraphNodeNum x = 0; x < self->num_nodes; x++) {
+        for(GraphNodeNum y = 0; y < self->num_nodes; y++) {
             GraphDistance distance = EDGE(self, x, y);
             float cost             = Graph_edge_cost(self, x, y);
 
@@ -310,7 +314,7 @@ int main(int argc, char **argv) {
     if( DEBUG )
         Graph_print(graph);
 
-    printf("%d\n", Graph_shortest_route(graph));
+    printf("%d\n", Graph_shortest_route_cost(graph));
     
     Graph_destroy(graph);
     
