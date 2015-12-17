@@ -5,6 +5,12 @@
 #include <math.h>
 #include <assert.h>
 
+/* Because we store distances as unsigned ints to save memory, we
+   can't represent infinity for no connection.  0 or MAX_INT are our
+   choices.  0 is a problem when comparing, MAX_INT is a problem when
+   adding.  So use floating point infinity when calculating
+   distances */
+typedef float GraphCost;
 typedef unsigned short GraphDistance;
 
 /* Let's face it, this isn't going to work for even 255 nodes */
@@ -48,13 +54,8 @@ static void Graph_destroy(Graph *self) {
 
 #define EDGE(graph, x, y) TWOD(graph->nodes, x, y, graph->max_nodes)
 
-/* Because we store distances as unsigned shorts to save memory, we
-   can't represent infinity for no connection.  0 or MAX_INT are our
-   choices.  0 is a problem when comparing, MAX_INT is a problem when
-   adding.  So use floating point infinity when calculating
-   distances */
-static inline float Graph_edge_cost(Graph *self, GraphNodeNum x, GraphNodeNum y) {
-    float cost = EDGE(self, x, y);
+static inline GraphCost Graph_edge_cost(Graph *self, GraphNodeNum x, GraphNodeNum y) {
+    GraphCost cost = EDGE(self, x, y);
     return cost == 0 ? INFINITY : cost;
 }
 
@@ -98,7 +99,7 @@ static inline GraphNodeSet GraphNodeSet_flip(GraphNodeSet set, GraphNodeNum x, G
     return set ^ (GraphNodeSet_mask(x) | GraphNodeSet_mask(y));
 }
 
-static float Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, GraphNodeSet visited) {
+static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, GraphNodeSet visited) {
     if( DEBUG ) {
         char *human = GraphNodeSet_to_human(visited);
         fprintf(stderr, "min_cost(%p, %d, %d, %s)\n", self, start, next, human);
@@ -120,12 +121,12 @@ static float Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, 
     }
 
     /* Figure out what it would cost to come from each visited node */
-    float cost = INFINITY;
+    GraphCost cost = INFINITY;
     for( GraphNodeNum prev = 0; prev < self->num_nodes; prev++ ) {
         if( prev == start ) {
             /* Only the starting point has been visited, next must be one hop away */
             if( GraphNodeSet_is_only_one_in_set(visited, start) ) {
-                float edge_cost = Graph_edge_cost(self, start, next);
+                GraphCost edge_cost = Graph_edge_cost(self, start, next);
                 if( DEBUG )
                     fprintf(stderr, "Starting edge %d to %d = %f\n", start, next, edge_cost);
                 return edge_cost;
@@ -141,7 +142,7 @@ static float Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, 
         /* This node was previously visited */
         if( GraphNodeSet_is_in_set(visited, prev) ) {
             /* The edge cost to get from prev to next */
-            float prev_cost = Graph_edge_cost(self, next, prev);
+            GraphCost prev_cost = Graph_edge_cost(self, next, prev);
 
             if( DEBUG )
                 fprintf(stderr, "prev edge cost = %f\n", prev_cost);
@@ -165,7 +166,7 @@ static float Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, 
 }
 
 static int Graph_shortest_route_cost(Graph *self) {
-    float cost = INFINITY;
+    GraphCost cost = INFINITY;
     for(GraphNodeNum start = 0; start < self->num_nodes; start++) {
         for( GraphNodeNum end = start+1; end < self->num_nodes; end++) {
             GraphNodeSet visited = 0;
@@ -227,7 +228,7 @@ static void Graph_print(Graph *self) {
     for(GraphNodeNum x = 0; x < self->num_nodes; x++) {
         for(GraphNodeNum y = 0; y < self->num_nodes; y++) {
             GraphDistance distance = EDGE(self, x, y);
-            float cost             = Graph_edge_cost(self, x, y);
+            GraphCost cost         = Graph_edge_cost(self, x, y);
 
             if( distance ) {
                 char *x_name = self->node2name[x];
