@@ -18,7 +18,7 @@ static Graph *Graph_new(short max_nodes) {
     Graph *graph = malloc(sizeof(Graph));
 
     graph->node2name  = calloc(max_nodes, sizeof(*(graph->node2name)));
-    graph->nodes      = calloc(max_nodes * max_nodes, sizeof(*(graph->node2name)));
+    graph->nodes      = calloc(max_nodes * max_nodes, sizeof(*(graph->nodes)));
     graph->name2node  = g_hash_table_new_full(
         g_str_hash, g_str_equal,
         free, free
