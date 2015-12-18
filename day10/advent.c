@@ -27,20 +27,35 @@ static char *look_and_say_once(const char *initial_sequence) {
         
         size_t next_pos = strspn(pos, letter);
 
-        if( DEBUG )
-            fprintf(stderr, "num_to_str(%zu) = %s\n", next_pos, num_to_str(next_pos));
+        char *num_str = num_to_str(next_pos);
         
-        strlcat( result, num_to_str(next_pos), result_len );
+        if( DEBUG )
+            fprintf(stderr, "num_to_str(%zu) = %s\n", next_pos, num_str);
+
+        strlcat( result, num_str, result_len );
         strlcat( result, letter, result_len );
 
+        free(num_str);
+        
         pos += next_pos;
     }
 
     return result;
 }
 
-static char *look_and_say(const char *initial_sequence, int times) {
-    return look_and_say_once(initial_sequence);
+static char *look_and_say(char *sequence, int times) {
+    char *result = sequence;
+    
+    for( int i = 1; i <= times; i++ ) {
+        sequence = result;
+        result = look_and_say_once(sequence);
+
+        /* Free the intermediate result, but not the initial one */
+        if( i > 1 )
+            free(sequence);
+    }
+
+    return result;
 }
 
 
@@ -58,13 +73,16 @@ static void test_example() {
 
     printf("Trying look_and_say_once()\n");
     for(int i = 0; !is_empty(results[i+1]); i++) {
-        char *have = results[i];
+        char *arg  = results[i];
         char *want = results[i+1];
 
-        char *result = look_and_say_once(results[i]);
+        char *have = look_and_say_once(results[i]);
         
-        printf("\t%s -> %s = %s\n", have, want, result);
-        assert( streq( result, want ) );
+        printf(
+            "\targ:  %s, have: %s, want: %s\n",
+            arg, have, want
+        );
+        assert( streq( have, want ) );
     }
 
     assert( streq( look_and_say(results[0], 5), results[5] ) );
@@ -82,8 +100,13 @@ int main(int argc, char **argv) {
         exit(1);
     }
     
-    if( argc == 3 )
-        printf( "%s\n", look_and_say(argv[1], atoi(argv[2])) );
+    if( argc == 3 ) {
+        printf( "Trying %s %d times.\n", argv[1], atoi(argv[2]) );
+        char *result = look_and_say(argv[1], atoi(argv[2]));
+        printf("Length is %zu\n", strlen(result));
+
+        free(result);
+    }
     else {
         puts("Running tests.");
         run_tests();
