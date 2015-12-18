@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/errno.h>
 #include <string.h>
+#include <math.h>
 #include "common.h"
 
 FILE *open_file(const char *filename, const char *mode) {
@@ -62,4 +63,18 @@ void die(char *format, ...) {
     fputs("\n", stderr);
 
     exit(1);
+}
+
+
+char *num_to_str(long num) {
+    int len = num == 0 ? 1 : floor(log10l(labs(num)))+1;
+
+    /* Add room for a negative sign */
+    if( num < 0 )
+        len++;
+    
+    char *result = calloc(len+1, sizeof(char));
+    snprintf(result, len+1, "%ld", num);
+
+    return result;
 }
