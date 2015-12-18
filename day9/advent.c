@@ -99,6 +99,7 @@ static inline GraphNodeSet GraphNodeSet_flip(GraphNodeSet set, GraphNodeNum x, G
     return set ^ (GraphNodeSet_mask(x) | GraphNodeSet_mask(y));
 }
 
+int Graph_min_cost_Calls = 0;
 static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, GraphNodeSet visited) {
     if( DEBUG ) {
         char *human = GraphNodeSet_to_human(visited);
@@ -120,6 +121,9 @@ static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum ne
         return Graph_min_cost( self, next, start, GraphNodeSet_flip(visited, start, next) );
     }
 
+    /* After the symmetric optimization */
+    Graph_min_cost_Calls++;
+    
     /* Figure out what it would cost to come from each visited node */
     GraphCost cost = INFINITY;
     for( GraphNodeNum prev = 0; prev < self->num_nodes; prev++ ) {
@@ -166,6 +170,8 @@ static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum ne
 }
 
 static int Graph_shortest_route_cost(Graph *self) {
+    Graph_min_cost_Calls = 0;
+    
     GraphCost cost = INFINITY;
     for(GraphNodeNum start = 0; start < self->num_nodes; start++) {
         for( GraphNodeNum end = start+1; end < self->num_nodes; end++) {
@@ -178,6 +184,9 @@ static int Graph_shortest_route_cost(Graph *self) {
         }
     }
 
+    if( DEBUG )
+        fprintf(stderr, "Graph_min_cost calls = %d\n", Graph_min_cost_Calls);
+    
     return cost;
 }
 
@@ -312,10 +321,10 @@ int main(int argc, char **argv) {
 
     Graph *graph = read_graph(input);
 
+    printf("%d\n", Graph_shortest_route_cost(graph));
+    
     if( DEBUG )
         Graph_print(graph);
-
-    printf("%d\n", Graph_shortest_route_cost(graph));
     
     Graph_destroy(graph);
     
