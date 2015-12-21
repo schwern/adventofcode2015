@@ -110,6 +110,15 @@ static Sequence *look_and_say(char *seq_str, int times) {
 }
 
 
+static void assert_seq( Sequence *have, char *want_str ) {
+    char *have_str = Sequence_to_string(have);
+
+    printf("assert_seq: have = %s, want = %s\n", have_str, want_str);
+    assert( streq(have_str, want_str) );
+    
+    free(have_str);
+}
+
 /* Test the example from the problem description */
 static void test_example() {
     char *results[] = {
@@ -128,19 +137,25 @@ static void test_example() {
     printf("Sequence_new_from_string / to_string round trip\n");
     for(int i = 0; !is_empty(results[i]); i++) {
         char *arg = results[i];
-        char *have = Sequence_to_string( Sequence_new_from_string(arg) );
+        Sequence *have = Sequence_new_from_string(arg);
         char *want = arg;
-        assert( streq( have, want ) );
+
+        assert_seq(have, want);
+
+        Sequence_destroy(have);
     }
 
     printf("Sequence_next_size\n");
     for(int i = 0; !is_empty(results[i+1]); i++) {
         char *arg = results[i];
         int want = strlen(results[i+1]);
-        int have = Sequence_next_size( Sequence_new_from_string(arg) );
+        Sequence *seq = Sequence_new_from_string(arg);
+        int have = Sequence_next_size( seq );
 
         printf("\tSequence_next_size(%s), have: %d, want: %d\n", arg, have, want);
         assert( have == want );
+
+        Sequence_destroy(seq);
     }
     
     
@@ -148,30 +163,33 @@ static void test_example() {
     for(int i = 0; !is_empty(results[i]); i++) {
         char *arg  = results[i];
         char *want = arg;
-        char *have = Sequence_to_string( look_and_say(arg, 0) );
+        Sequence *have = look_and_say(arg, 0);
         
-        printf("\tlook_and_say(%s, 0), have: %s, want: %s\n", arg, have, want);
-        assert( streq(have, want) );
+        assert_seq( have, want );
+
+        Sequence_destroy(have);
     }
     
     printf("Trying look_and_say(x, 1)\n");
     for(int i = 0; !is_empty(results[i+1]); i++) {
         char *arg  = results[i];
         char *want = results[i+1];
-        char *have = Sequence_to_string( look_and_say(arg, 1) );
+        Sequence *have = look_and_say(arg, 1);
         
-        printf("\tlook_and_say(%s, 1), have: %s, want: %s\n", arg, have, want);
-        assert( streq(have, want) );
+        assert_seq( have, want );
+        
+        Sequence_destroy(have);
     }
 
     printf("Trying look_and_say_len(x, y)\n");
     for( int i = 0; !is_empty(results[i]); i++ ) {
         char *arg  = results[0];
         char *want = results[i];
-        char *have = Sequence_to_string( look_and_say(arg, i) );
+        Sequence *have = look_and_say(arg, i);
         
-        printf("\tlook_and_say(%s, %d), have: %s, want: %s\n", arg, i, have, want);
-        assert( streq(have, want) );
+        assert_seq( have, want );
+
+        Sequence_destroy(have);
     }
 }
 
