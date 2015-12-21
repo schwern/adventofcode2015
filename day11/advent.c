@@ -1,6 +1,7 @@
 #include "common.h"
 #include <stdio.h>
 #include <assert.h>
+#include <stdbool.h>
 
 static void inc_string(char *string) {
     size_t len = strlen(string);
@@ -42,6 +43,93 @@ static void test_inc_string() {
     }
 }
 
+/* Passwords must be... */
+static bool is_valid_password(char *password) {
+    size_t len = strlen(password);
+    
+    /* ...exactly eight lowercase letters */
+    if( len != 8 )
+        return false;
+
+    short straight_cnt = 1;
+    short max_straight_cnt = 0;
+    short pair_cnt     = 0;
+
+    char prev_char = password[0];
+    for( int i = 1; i < len; i++ ) {
+        char this_char = password[i];
+        
+        /* may not contain the letters i, o, or l */
+        switch(this_char) {
+            case 'i':
+            case 'o':
+            case 'l':
+                return false;
+                break;
+        }
+
+        if( prev_char == this_char - 1 ) {
+            straight_cnt++;
+            max_straight_cnt = MAX( straight_cnt, max_straight_cnt );
+        }
+        else {
+            straight_cnt = 1;
+        }
+
+        if( prev_char == this_char )
+            pair_cnt++;
+        
+        prev_char = this_char;
+    }
+
+    if( DEBUG )
+        fprintf(stderr, "max_straight_cnt: %d, pair_cnt: %d\n", max_straight_cnt, pair_cnt);
+    
+    /* must include one increasing straight of at least three letters */
+    if( max_straight_cnt < 3 )
+        return false;
+
+    /* must contain at least two different, non-overlapping pairs of letters */
+    if( pair_cnt < 2 )
+        return false;
+    
+    return true;
+}
+
+
+static void test_is_valid_password() {
+    char *valid[] = {
+        "abcdffaa",
+        "ghjaabcc",
+        ""
+    };
+
+    printf("Testing is_valid_password()\n");
+    for(int i = 0; !is_empty(valid[i]); i++) {
+        char *arg = valid[i];
+
+        printf("\tis_valid_password(%s)\n", arg);
+        assert( is_valid_password(arg) );
+    }
+    
+    char *invalid[] = {
+        "abc",          /* too short */
+        "ghjaabccg",    /* too long */
+        "hijklmmn",     /* invalid char i */
+        "abbceffg",     /* missing straight */
+        "abbcegjk",     /* only one double */
+        ""
+    };
+
+    printf("Testing !is_valid_password()\n");
+    for(int i = 0; !is_empty(invalid[i]); i++) {
+        char *arg = invalid[i];
+
+        printf("\t!is_valid_password(%s)\n", arg);
+        assert( !is_valid_password(arg) );
+    }
+}
+
 
 static char *next_password(char *old) {
     return "";
@@ -50,6 +138,7 @@ static char *next_password(char *old) {
 
 static void tests() {
     test_inc_string();
+    test_is_valid_password();
 }
 
 
