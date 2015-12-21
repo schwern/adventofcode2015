@@ -9,7 +9,22 @@ static void inc_string(char *string) {
 
     static char First_Char = 'a';
     static char Last_Char  = 'z';
-    
+
+    /* If there's a forbidden character, increment it and set everything after it to 'a' */
+    /* Example. "ghijk" skips to "ghjaa" because "ghi--" will never work */
+    for( int i = 0; i < len-1; i++ ) {
+        switch(string[i]) {
+            case 'i':
+            case 'o':
+            case 'l':
+                string[i]++;
+                for( int j = i+1; j < len; j++ ) {
+                    string[j] = First_Char;
+                }
+                return;
+        }
+    }
+
     for( int i = len-1; i >= 0; i-- ) {
         if( string[i] != Last_Char ) {
             string[i]++;
@@ -23,9 +38,11 @@ static void inc_string(char *string) {
 
 static void test_inc_string() {
     char *tests[] = {
-        "foo", "fop",
+        "bar", "bas",
         "xz", "ya",
         "yzzz", "zaaa",
+        "ghijk", "ghjaa",
+        "aaai", "aaaj",
         ""
     };
 
