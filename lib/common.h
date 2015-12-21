@@ -6,6 +6,7 @@
 #include <glib.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef DEBUG
 #  define DEBUG 1
@@ -32,8 +33,14 @@ GRegex *compile_regex(
     GRegexMatchFlags match_options
 );
 
-static inline bool is_empty(char *str) {
+static inline bool is_empty(const char *str) {
     return str[0] == '\0';
 }
+
+static inline bool streq(const char *a, const char *b) {
+    return strcmp(a, b) == 0;
+}
+
+char *num_to_str(long num);
 
 #endif
