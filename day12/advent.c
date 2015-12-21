@@ -74,8 +74,18 @@ static void tests() {
     test_sum_all_numbers();
 }
 
+static void sum_all_lines(char *line, void *_sum) {
+    int *sum = (int *)_sum;
+    
+    *sum += sum_all_numbers(line);
+}
+
 static int read_all_numbers(FILE *input) {
-    return 42;
+    int sum = 0;
+    
+    foreach_line(input, sum_all_lines, &sum);
+
+    return sum;
 }
 
 int main(int argc, char **argv) {
