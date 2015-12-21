@@ -51,9 +51,10 @@ static bool is_valid_password(char *password) {
     if( len != 8 )
         return false;
 
-    short straight_cnt = 1;
-    short max_straight_cnt = 0;
-    short pair_cnt     = 0;
+    short straight_cnt          = 0;
+    short max_straight_cnt      = 0;
+    short pair_cnt              = 0;
+    bool  prev_was_pair = false;
 
     char prev_char = password[0];
     for( int i = 1; i < len; i++ ) {
@@ -69,15 +70,20 @@ static bool is_valid_password(char *password) {
         }
 
         if( prev_char == this_char - 1 ) {
-            straight_cnt++;
+            straight_cnt += 2;
             max_straight_cnt = MAX( straight_cnt, max_straight_cnt );
         }
         else {
-            straight_cnt = 1;
+            straight_cnt = 0;
         }
 
-        if( prev_char == this_char )
+        if( !prev_was_pair && prev_char == this_char ) {
             pair_cnt++;
+            prev_was_pair = true;
+        }
+        else {
+            prev_was_pair = false;
+        }
         
         prev_char = this_char;
     }
@@ -117,7 +123,8 @@ static void test_is_valid_password() {
         "ghjaabccg",    /* too long */
         "hijklmmn",     /* invalid char i */
         "abbceffg",     /* missing straight */
-        "abbcegjk",     /* only one double */
+        "abbcegjk",     /* only one pair */
+        "abbbcdef",     /* a triple is not two pairs */
         ""
     };
 
