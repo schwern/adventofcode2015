@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <string.h>
 
 static void inc_string(char *string) {
     size_t len = strlen(string);
@@ -139,13 +140,42 @@ static void test_is_valid_password() {
 
 
 static char *next_password(char *old) {
-    return "";
+    char *new = strdup(old);
+    
+    do {
+        inc_string(new);
+    } while( !is_valid_password(new) );
+
+    return new;
+}
+
+
+static void test_next_password() {
+    char *tests[] = {
+        "abcdefgh", "abcdffaa",
+        "ghijklmn", "ghjaabcc",
+        ""
+    };
+
+    printf("Testing next_password()\n");
+    for( int i = 0; !is_empty(tests[i]); i+=2 ) {
+        char *arg = tests[i];
+        char *want = tests[i+1];
+
+        char *have = next_password(arg);
+
+        printf("\tnext_password(%s) == %s/%s\n", arg, have, want);
+        assert( streq(have, want) );
+
+        free(have);
+    }
 }
 
 
 static void tests() {
     test_inc_string();
     test_is_valid_password();
+    test_next_password();
 }
 
 
@@ -154,7 +184,7 @@ int main(int argc, char **argv) {
         tests();
     }
     else if( argc == 2 ) {
-        char *new = next_password( argv[0] );
+        char *new = next_password( argv[1] );
 
         puts(new);
         free(new);
