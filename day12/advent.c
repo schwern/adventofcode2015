@@ -3,10 +3,6 @@
 #include <assert.h>
 #include <math.h>
 
-static inline int ipow(int base, int power) {
-    return pow(base, power);
-}
-
 static int sum_all_numbers( const char *string ) {
     size_t len = strlen(string);
 

@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #ifdef DEBUG
 #  define DEBUG 1
@@ -32,6 +33,10 @@ GRegex *compile_regex(
     GRegexCompileFlags compile_options,
     GRegexMatchFlags match_options
 );
+
+static inline int ipow(int base, int power) {
+    return pow(base, power);
+}
 
 static inline bool is_empty(const char *str) {
     return str[0] == '\0';
