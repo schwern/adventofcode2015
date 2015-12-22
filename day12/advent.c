@@ -70,22 +70,56 @@ static void test_sum_all_numbers() {
     }
 }
 
-static bool ignore_object(JsonObject *object) {
-    assert(0);
+static void json_object_foreach_should_ignore(
+    JsonObject *object,
+    const char *name,
+    JsonNode *node,
+    gpointer _should_ignore
+) {
+    bool *should_ignore = (bool *)_should_ignore;
 
-    return false;
+    if( *should_ignore )
+        return;
+
+    if( JSON_NODE_HOLDS_VALUE(node) ) {
+        const char *value = json_node_get_string(node);
+        if( value && streq( value, "red" ) )
+            *should_ignore = true;
+    }
 }
+
+static bool should_ignore_object(JsonObject *object) {
+    bool should_ignore = false;
+
+    json_object_foreach_member( object, json_object_foreach_should_ignore, &should_ignore );
+
+    return should_ignore;
+}
+
+static void json_object_foreach_sum(
+    JsonObject *object,
+    const char *name,
+    JsonNode *node,
+    gpointer _sum
+) {
+    int *sum = (int *)_sum;
+
+    *sum += sum_json_node(node);
+}
+
 
 static int sum_json_object(JsonObject *object) {
-    if( ignore_object( object ) )
+    int sum = 0;
+    
+    if( should_ignore_object( object ) )
         return 0;
 
-    assert(0);
+    json_object_foreach_member( object, json_object_foreach_sum, &sum );
 
-    return 0;
+    return sum;
 }
 
-static void sum_json_array_element(JsonArray *array, guint index, JsonNode *node, gpointer _sum) {
+static void json_array_foreach_sum(JsonArray *array, guint index, JsonNode *node, gpointer _sum) {
     int *sum = (int *)_sum;
 
     *sum += sum_json_node(node);
@@ -94,7 +128,7 @@ static void sum_json_array_element(JsonArray *array, guint index, JsonNode *node
 static int sum_json_array(JsonArray *array) {
     int sum = 0;
     
-    json_array_foreach_element(array, sum_json_array_element, &sum);
+    json_array_foreach_element(array, json_array_foreach_sum, &sum);
 
     return sum;
 }
@@ -130,9 +164,11 @@ static int sum_json_string( char *input ) {
 
 static void test_sum_json_string() {
     char *tests[] = {
-        "[1,2,3]",                              "6",
-        "[1,\"red\",5]",                        "6",
-        "[1, [2, 3], \"four\", 5]",             "11",
+        "[1,2,3]",                                      "6",
+        "[1,\"red\",5]",                                "6",
+        "[1, [2, 3], \"four\", 5]",                     "11",
+        "[1,{\"c\":\"red\",\"b\":2},3]",                "4",
+        "{\"d\":\"red\",\"e\":[1,2,3,4],\"f\":5}",      "0",
         ""
     };
 
