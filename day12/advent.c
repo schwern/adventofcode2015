@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+#include <json-glib/json-glib.h>
+#include <gio/gunixinputstream.h>
+
+static int sum_json_node(JsonNode *node);
 
 static int sum_all_numbers( const char *string ) {
     size_t len = strlen(string);
@@ -66,8 +70,87 @@ static void test_sum_all_numbers() {
     }
 }
 
+static bool ignore_object(JsonObject *object) {
+    assert(0);
+
+    return false;
+}
+
+static int sum_json_object(JsonObject *object) {
+    if( ignore_object( object ) )
+        return 0;
+
+    assert(0);
+
+    return 0;
+}
+
+static void sum_json_array_element(JsonArray *array, guint index, JsonNode *node, gpointer _sum) {
+    int *sum = (int *)_sum;
+
+    *sum += sum_json_node(node);
+}
+    
+static int sum_json_array(JsonArray *array) {
+    int sum = 0;
+    
+    json_array_foreach_element(array, sum_json_array_element, &sum);
+
+    return sum;
+}
+
+static int sum_json_node(JsonNode *node) {
+    switch(JSON_NODE_TYPE(node)) {
+        case JSON_NODE_OBJECT:
+            return sum_json_object( json_node_get_object(node) );
+        case JSON_NODE_ARRAY:
+            return sum_json_array( json_node_get_array(node) );
+        case JSON_NODE_VALUE:
+            return json_node_get_int(node);
+        default:
+            return 0;
+    }
+}
+
+static int sum_json_string( char *input ) {
+    GError *error = NULL;
+    JsonParser *parser = json_parser_new();
+    
+    if( !json_parser_load_from_data(parser, input, -1, &error) )
+        die("Could not load JSON: %s", error->message);
+
+    JsonNode *root = json_parser_get_root(parser); 
+
+    int sum = sum_json_node(root);
+    
+    g_object_unref(parser);
+
+    return sum;
+}
+
+static void test_sum_json_string() {
+    char *tests[] = {
+        "[1,2,3]",                              "6",
+        "[1,\"red\",5]",                        "6",
+        "[1, [2, 3], \"four\", 5]",             "11",
+        ""
+    };
+
+    printf("Testing sum_json_string()\n");
+    for( int i = 0; !is_empty( tests[i] ); i+=2 ) {
+        char *arg = tests[i];
+        int want  = atoi(tests[i+1]);
+        int have  = sum_json_string(arg);
+        
+        printf("\tsum_json_string(%s), have = %d, want = %d\n", arg, have, want);
+
+        assert( have == want );
+    }
+}
+
 static void tests() {
     test_sum_all_numbers();
+    test_sum_json_string();
 }
 
 static void sum_all_lines(char *line, void *_sum) {
@@ -84,13 +167,31 @@ static int read_all_numbers(FILE *input) {
     return sum;
 }
 
+static int sum_json(FILE *input) {
+    GError *error = NULL;
+    JsonParser *parser = json_parser_new();
+    GInputStream *stream = g_unix_input_stream_new( fileno(input), false );
+    
+    if( !json_parser_load_from_stream(parser, stream, NULL, &error) )
+        die("Could not load JSON: %s", error->message);
+
+    JsonNode *root = json_parser_get_root(parser);
+
+    int sum = sum_json_node(root);
+    
+    g_object_unref(parser);
+    g_object_unref(stream);
+
+    return sum;
+}
+
 int main(int argc, char **argv) {
     if( argc == 1 ) {
         tests();
     }
     else if( argc == 2 ) {
         FILE *input = open_file(argv[1], "r");
-        int sum = read_all_numbers(input);
+        int sum = sum_json(input);
         printf("%d\n", sum);
     }
     else {

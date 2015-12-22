@@ -4,6 +4,11 @@ INCLUDE  = -Ilib
 CFLAGS  += $(OPTIMIZE) $(WARNINGS) $(INCLUDE)
 CFLAGS  += `pkg-config --cflags glib-2.0`
 LDFLAGS += `pkg-config --libs glib-2.0`
+CFLAGS  += `pkg-config --cflags json-glib-1.0`
+LDFLAGS += `pkg-config --libs json-glib-1.0`
+CFLAGS  += `pkg-config --cflags gio-unix-2.0`
+LDFLAGS += `pkg-config --libs gio-unix-2.0`
+
 OBJS=$(patsubst %.c, %.o, $(wildcard lib/*.c))
 HEADERS=$(wildcard lib/*.h)
 DAYS=$(wildcard day*)
