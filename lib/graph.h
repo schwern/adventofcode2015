@@ -24,6 +24,13 @@ Graph *Graph_new(GraphNodeNum max_nodes);
 void Graph_destroy(Graph *self);
 int Graph_shortest_route_cost(Graph *self);
 void Graph_add_named(Graph *self, char *from, char *to, GraphDistance distance);
+GraphNodeNum Graph_lookup_or_add(Graph *self, char *name);
 void Graph_print(Graph *self);
+
+#define EDGE(graph, x, y) TWOD(graph->nodes, x, y, graph->max_nodes)
+static inline GraphCost Graph_edge_cost(Graph *self, GraphNodeNum x, GraphNodeNum y) {
+    GraphCost cost = EDGE(self, x, y);
+    return cost == 0 ? INFINITY : cost;
+}
 
 #endif

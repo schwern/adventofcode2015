@@ -31,13 +31,6 @@ void Graph_destroy(Graph *self) {
     free(self);
 }
 
-#define EDGE(graph, x, y) TWOD(graph->nodes, x, y, graph->max_nodes)
-
-static inline GraphCost Graph_edge_cost(Graph *self, GraphNodeNum x, GraphNodeNum y) {
-    GraphCost cost = EDGE(self, x, y);
-    return cost == 0 ? INFINITY : cost;
-}
-
 /* XXX This isn't big enough XXX */
 typedef int GraphNodeSet;
 
@@ -169,7 +162,7 @@ int Graph_shortest_route_cost(Graph *self) {
     return cost;
 }
 
-static GraphNodeNum Graph_lookup_or_add(Graph *self, char *name) {
+GraphNodeNum Graph_lookup_or_add(Graph *self, char *name) {
     GHashTable *name2node = self->name2node;
     GraphNodeNum *num = g_hash_table_lookup( name2node, name );
     
