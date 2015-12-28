@@ -17,6 +17,9 @@ typedef short GraphDistance;
 /* Let's face it, this isn't going to work for even 255 nodes */
 typedef uint8_t GraphNodeNum;
 
+/* XXX This isn't big enough XXX */
+typedef int GraphNodeSet;
+
 typedef struct {
     GHashTable *name2node;
     char **node2name;
@@ -27,7 +30,8 @@ typedef struct {
 
 Graph *Graph_new(GraphNodeNum max_nodes);
 void Graph_destroy(Graph *self);
-int Graph_shortest_route_cost(Graph *self);
+int Graph_shortest_route_cost(Graph *self, bool return_to_start);
+int Graph_shortest_route_cost_from_zero(Graph *self, bool return_to_start);
 void Graph_add_named(Graph *self, char *from, char *to, GraphDistance distance);
 void Graph_increment_named(Graph *self, char *from, char *to, GraphDistance distance);
 void Graph_increment(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphDistance distance);

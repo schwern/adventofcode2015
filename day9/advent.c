@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 
     Graph *graph = read_graph(input);
 
-    printf("%d\n", Graph_shortest_route_cost(graph));
+    printf("%d\n", Graph_shortest_route_cost(graph, false));
     
     if( DEBUG )
         Graph_print(graph);

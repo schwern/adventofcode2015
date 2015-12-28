@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
 
 GRegex *Line_Re;
 GRegex *Blank_Line_Re;
@@ -41,7 +42,7 @@ void read_node( char *line, void *_graph ) {
         char *sign      = g_match_info_fetch_named(match, "SIGN");
         GraphDistance distance = (GraphDistance)atoi(happiness);
 
-        if( streq(sign, "lose") )
+        if( streq(sign, "gain") )
             distance = -distance;
 
         GraphNodeNum from_num = Graph_lookup_or_add(graph, from);
@@ -80,12 +81,12 @@ void test_read_node() {
     GraphNodeNum bob_num   = Graph_lookup_or_add(graph, "Bob");
 
     GraphCost have = Graph_edge_cost( graph, alice_num, bob_num );
-    GraphCost want = 40;    
+    GraphCost want = -40;
     printf("Graph_edge_cost( %p, %d, %d ) == %.0f/%.0f\n", graph, alice_num, bob_num, have, want);
     assert( have == want );
 
     have = Graph_edge_cost( graph, bob_num, alice_num );
-    want = 40;    
+    want = -40;
     printf("Graph_edge_cost( %p, %d, %d ) == %.0f/%.0f\n", graph, bob_num, alice_num, have, want);
     assert( have == want );
 }
@@ -111,9 +112,9 @@ int main(int argc, char **argv) {
     else if( argc == 2 ) {
         FILE *input = open_file(argv[1], "r");
         Graph *graph = read_graph(input);
+        int happiness = -Graph_shortest_route_cost_from_zero(graph, true);
 
-        Graph_print(graph);
-        //GraphCost happiness = Graph_best_seating(graph);
+        printf("%d\n", happiness);
     }
     else {
         char *desc[] = {argv[0], "<input file>"};

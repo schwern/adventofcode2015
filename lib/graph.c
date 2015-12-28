@@ -31,9 +31,6 @@ void Graph_destroy(Graph *self) {
     free(self);
 }
 
-/* XXX This isn't big enough XXX */
-typedef int GraphNodeSet;
-
 static inline GraphNodeSet GraphNodeSet_fill(GraphNodeNum size) {
     return (1<<size)-1;
 }
@@ -141,7 +138,7 @@ static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum ne
     return cost;
 }
 
-int Graph_shortest_route_cost(Graph *self) {
+int Graph_shortest_route_cost(Graph *self, bool return_to_start) {
     Graph_min_cost_Calls = 0;
     
     GraphCost cost = INFINITY;
@@ -152,13 +149,37 @@ int Graph_shortest_route_cost(Graph *self) {
             visited = GraphNodeSet_remove_from_set(visited, end);
             if( DEBUG )
                 fprintf(stderr, "Trying start to end\n");
-            cost = MIN( cost, Graph_min_cost(self, start, end, visited) );
+
+            GraphCost new_cost = Graph_min_cost(self, start, end, visited);
+            if( return_to_start )
+                new_cost += Graph_edge_cost(self, end, start);
+            
+            cost = MIN( cost, new_cost );
         }
     }
 
     if( DEBUG )
         fprintf(stderr, "Graph_min_cost calls = %d\n", Graph_min_cost_Calls);
     
+    return cost;
+}
+
+int Graph_shortest_route_cost_from_zero(Graph *self, bool return_to_start) {
+    GraphNodeNum start = 0;
+    GraphCost cost = INFINITY;
+
+    for( GraphNodeNum end = 1; end < self->num_nodes; end++ ) {
+        GraphNodeSet visited = 0;
+        visited = GraphNodeSet_fill(self->num_nodes);
+        visited = GraphNodeSet_remove_from_set(visited, end);
+
+        GraphCost new_cost = Graph_min_cost(self, start, end, visited);
+        if( return_to_start )
+            new_cost += Graph_edge_cost(self, end, start);
+        
+        cost = MIN( cost, new_cost );
+    }
+
     return cost;
 }
 
