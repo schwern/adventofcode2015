@@ -41,3 +41,9 @@ clean:
 
 try : $(ADVENTS)
 	@for day in $(DAYS); do echo $$day -----; ./$$day/advent $$day/input; done
+
+test/graph.t : test/graph.t.o $(OBJS)
+
+test :	force-look $(OBJS) test/graph.t
+	@./test/graph.t
+

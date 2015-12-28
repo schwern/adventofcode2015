@@ -1,6 +1,11 @@
 #ifndef _graph_h
 #define _graph_h
 
+#include "common.h"
+#include <stdint.h>
+#include <glib.h>
+#include <math.h>
+
 /* Because we store distances as unsigned ints to save memory, we
    can't represent infinity for no connection.  0 or MAX_INT are our
    choices.  0 is a problem when comparing, MAX_INT is a problem when
