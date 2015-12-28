@@ -162,6 +162,16 @@ int Graph_shortest_route_cost(Graph *self) {
     return cost;
 }
 
+GraphNodeNum Graph_lookup(Graph *self, char *name) {
+    GHashTable *name2node = self->name2node;
+    GraphNodeNum *num = g_hash_table_lookup( name2node, name );
+
+    if( DEBUG )
+        fprintf(stderr, "Graph_lookup(%p, %s) == %d\n", self, name, *num);
+    
+    return *num;
+}
+
 GraphNodeNum Graph_lookup_or_add(Graph *self, char *name) {
     GHashTable *name2node = self->name2node;
     GraphNodeNum *num = g_hash_table_lookup( name2node, name );
@@ -203,6 +213,24 @@ void Graph_add_named(Graph *self, char *from, char *to, GraphDistance distance) 
     GraphNodeNum to_num   = Graph_lookup_or_add(self, to);
 
     Graph_add(self, from_num, to_num, distance);
+}
+
+GraphCost Graph_edge_cost_named(Graph *self, char *from, char *to) {
+    GraphNodeNum from_num = Graph_lookup(self, from);
+    GraphNodeNum to_num   = Graph_lookup(self, to);
+
+    return Graph_edge_cost(self, from_num, to_num);
+}
+
+void Graph_increment(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphDistance distance) {
+    EDGE(self, from, to) = (EDGE(self, from, to) + distance);
+}
+
+void Graph_increment_named(Graph *self, char *from, char *to, GraphDistance distance) {
+    GraphNodeNum from_num = Graph_lookup(self, from);
+    GraphNodeNum to_num   = Graph_lookup(self, to);
+
+    return Graph_increment(self, from_num, to_num, distance);
 }
 
 void Graph_print(Graph *self) {

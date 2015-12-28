@@ -2,6 +2,18 @@
 #include <assert.h>
 #include <stdio.h>
 
+void test_increment() {
+    Graph *graph = Graph_new(20);
+
+    Graph_lookup_or_add(graph, "Foo");
+    Graph_lookup_or_add(graph, "Bar");
+
+    Graph_add_named(graph, "Foo", "Bar", 20);
+    Graph_increment_named(graph, "Foo", "Bar", -5);
+
+    assert( Graph_edge_cost_named(graph, "Foo", "Bar") == 15 );
+}
+
 void test_lookup_or_add() {
     Graph *graph = Graph_new(20);
 
@@ -14,5 +26,6 @@ void test_lookup_or_add() {
 
 int main(int argc, char **argv) {
     test_lookup_or_add();
+    test_increment();
     printf("%s: PASS\n", argv[0]);
 }

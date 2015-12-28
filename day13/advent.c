@@ -18,7 +18,7 @@ static void init_regexes() {
     if( !Line_Re )
         Line_Re = compile_regex(
             "^\\s*"
-            "(?<FROM>[[:alpha:]]+) would gain (?<HAPPINESS>\\d+) happiness units by sitting next to (?<TO>[[:alpha:]]+)."
+            "(?<FROM>[[:alpha:]]+) would (?<SIGN>gain|lose) (?<HAPPINESS>\\d+) happiness units by sitting next to (?<TO>[[:alpha:]]+)\\."
             "\\s*$",
             G_REGEX_OPTIMIZE,
             0
@@ -38,14 +38,25 @@ void read_node( char *line, void *_graph ) {
         char *from      = g_match_info_fetch_named(match, "FROM");
         char *to        = g_match_info_fetch_named(match, "TO");
         char *happiness = g_match_info_fetch_named(match, "HAPPINESS");
+        char *sign      = g_match_info_fetch_named(match, "SIGN");
         GraphDistance distance = (GraphDistance)atoi(happiness);
 
-        Graph_add_named(graph, from, to, distance);
+        if( streq(sign, "lose") )
+            distance = -distance;
+
+        GraphNodeNum from_num = Graph_lookup_or_add(graph, from);
+        GraphNodeNum to_num   = Graph_lookup_or_add(graph, to);
+        
+        /* We only care about the total happiness gained/lost.
+           It's easier if we model this as a symmetrical distance */
+        Graph_increment(graph, from_num, to_num, distance);
+        Graph_increment(graph, to_num, from_num, distance);
 
         g_match_info_free(match);
         free(from);
         free(to);
         free(happiness);
+        free(sign);
     }
     else if( g_regex_match(Blank_Line_Re, line, 0, NULL) ) {
         return;
@@ -58,22 +69,35 @@ void read_node( char *line, void *_graph ) {
 }
 
 void test_read_node() {
-    char *line = "Alice would gain 54 happiness units by sitting next to Bob.";
     Graph *graph = Graph_new(20);
 
     init_regexes();
-    read_node( line, graph );
+    read_node( "Alice would gain 54 happiness units by sitting next to Bob.\n", graph );
+    read_node( "Bob would lose 14 happiness units by sitting next to Alice.\n", graph );
     free_regexes();
 
     GraphNodeNum alice_num = Graph_lookup_or_add(graph, "Alice");
     GraphNodeNum bob_num   = Graph_lookup_or_add(graph, "Bob");
 
     GraphCost have = Graph_edge_cost( graph, alice_num, bob_num );
-    GraphCost want = 54;
-    
+    GraphCost want = 40;    
     printf("Graph_edge_cost( %p, %d, %d ) == %.0f/%.0f\n", graph, alice_num, bob_num, have, want);
-    
     assert( have == want );
+
+    have = Graph_edge_cost( graph, bob_num, alice_num );
+    want = 40;    
+    printf("Graph_edge_cost( %p, %d, %d ) == %.0f/%.0f\n", graph, bob_num, alice_num, have, want);
+    assert( have == want );
+}
+
+Graph *read_graph(FILE *input) {
+    Graph *graph = Graph_new(30);
+
+    init_regexes();
+    foreach_line(input, read_node, graph);
+    free_regexes();
+    
+    return graph;
 }
 
 void runtests() {
@@ -86,6 +110,10 @@ int main(int argc, char **argv) {
     }
     else if( argc == 2 ) {
         FILE *input = open_file(argv[1], "r");
+        Graph *graph = read_graph(input);
+
+        Graph_print(graph);
+        //GraphCost happiness = Graph_best_seating(graph);
     }
     else {
         char *desc[] = {argv[0], "<input file>"};
