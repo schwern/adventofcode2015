@@ -112,7 +112,11 @@ int main(int argc, char **argv) {
     else if( argc == 2 ) {
         FILE *input = open_file(argv[1], "r");
         Graph *graph = read_graph(input);
-        int happiness = -Graph_shortest_route_cost_from_zero(graph, true);
+
+        if( DEBUG )
+            Graph_print(graph);
+        
+        int happiness = -Graph_shortest_route_cost_from(graph, 0, true);
 
         printf("%d\n", happiness);
     }

@@ -143,19 +143,7 @@ int Graph_shortest_route_cost(Graph *self, bool return_to_start) {
     
     GraphCost cost = INFINITY;
     for(GraphNodeNum start = 0; start < self->num_nodes; start++) {
-        for( GraphNodeNum end = start+1; end < self->num_nodes; end++) {
-            GraphNodeSet visited = 0;
-            visited = GraphNodeSet_fill(self->num_nodes);
-            visited = GraphNodeSet_remove_from_set(visited, end);
-            if( DEBUG )
-                fprintf(stderr, "Trying start to end\n");
-
-            GraphCost new_cost = Graph_min_cost(self, start, end, visited);
-            if( return_to_start )
-                new_cost += Graph_edge_cost(self, end, start);
-            
-            cost = MIN( cost, new_cost );
-        }
+        cost = MIN( cost, Graph_shortest_route_cost_from(self, start, return_to_start ) );
     }
 
     if( DEBUG )
@@ -164,11 +152,13 @@ int Graph_shortest_route_cost(Graph *self, bool return_to_start) {
     return cost;
 }
 
-int Graph_shortest_route_cost_from_zero(Graph *self, bool return_to_start) {
-    GraphNodeNum start = 0;
+int Graph_shortest_route_cost_from(Graph *self, GraphNodeNum start, bool return_to_start) {
     GraphCost cost = INFINITY;
 
-    for( GraphNodeNum end = 1; end < self->num_nodes; end++ ) {
+    for( GraphNodeNum end = 0; end < self->num_nodes; end++ ) {
+        if( start == end )
+            continue;
+        
         GraphNodeSet visited = 0;
         visited = GraphNodeSet_fill(self->num_nodes);
         visited = GraphNodeSet_remove_from_set(visited, end);

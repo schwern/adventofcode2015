@@ -31,7 +31,7 @@ typedef struct {
 Graph *Graph_new(GraphNodeNum max_nodes);
 void Graph_destroy(Graph *self);
 int Graph_shortest_route_cost(Graph *self, bool return_to_start);
-int Graph_shortest_route_cost_from_zero(Graph *self, bool return_to_start);
+int Graph_shortest_route_cost_from(Graph *self, GraphNodeNum start, bool return_to_start);
 void Graph_add_named(Graph *self, char *from, char *to, GraphDistance distance);
 void Graph_increment_named(Graph *self, char *from, char *to, GraphDistance distance);
 void Graph_increment(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphDistance distance);
