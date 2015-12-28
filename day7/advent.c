@@ -250,8 +250,9 @@ int main(const int argc, char **argv) {
     FILE *input = stdin;
 
     if( argc > 4 ) {
-        char *argv_desc[4] = {argv[0], "<circuit file>", "<var> <override>"};
+        char *argv_desc[4] = {argv[0], "<circuit file>", "<var>", "<override>"};
         usage(4, argv_desc);
+        exit(1);
     }
 
     if( argc >= 2 )
