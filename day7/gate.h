@@ -2,8 +2,7 @@
 #define _gate_h
 
 #include <stdarg.h>
-
-#define __(o, m, ...) o->proto->m(o, ##__VA_ARGS__)
+#include "object.h"
 
 #include <stdint.h>
 
