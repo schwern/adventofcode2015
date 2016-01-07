@@ -114,10 +114,6 @@ static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum cu
         if( DEBUG )
             fprintf(stderr, "\tedge cost: %.0f\n", prev_cost);
         
-        /* It's already more expensive, forget it */
-        if( prev_cost > cost )
-            continue;
-        
         prev_cost += Graph_min_cost(self, start, prev, visited);
 
         if( DEBUG )
