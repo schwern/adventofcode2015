@@ -138,12 +138,20 @@ static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum ne
     return cost;
 }
 
-int Graph_shortest_route_cost(Graph *self, bool return_to_start) {
+GraphCost Graph_shortest_route_cost(Graph *self, bool return_to_start) {
     Graph_min_cost_Calls = 0;
     
     GraphCost cost = INFINITY;
     for(GraphNodeNum start = 0; start < self->num_nodes; start++) {
-        cost = MIN( cost, Graph_shortest_route_cost_from(self, start, return_to_start ) );
+        if( DEBUG )
+            fprintf(stderr, "starting from %d\n", start);
+
+        GraphCost try_cost = Graph_shortest_route_cost_from(self, start, return_to_start);
+
+        if( DEBUG )
+            fprintf(stderr, "cost: %.0f, try_cost: %.0f\n", cost, try_cost);
+        
+        cost = MIN( cost, try_cost );
     }
 
     if( DEBUG )
@@ -152,7 +160,7 @@ int Graph_shortest_route_cost(Graph *self, bool return_to_start) {
     return cost;
 }
 
-int Graph_shortest_route_cost_from(Graph *self, GraphNodeNum start, bool return_to_start) {
+GraphCost Graph_shortest_route_cost_from(Graph *self, GraphNodeNum start, bool return_to_start) {
     GraphCost cost = INFINITY;
 
     for( GraphNodeNum end = 0; end < self->num_nodes; end++ ) {
