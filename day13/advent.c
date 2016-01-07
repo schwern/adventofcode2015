@@ -134,6 +134,8 @@ int main(int argc, char **argv) {
         int happiness = -Graph_shortest_route_cost_from(graph, 0, true);
 
         printf("%d\n", happiness);
+
+        Graph_destroy(graph);
     }
     else {
         char *desc[] = {argv[0], "<input file>"};
