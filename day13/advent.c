@@ -105,6 +105,19 @@ void runtests() {
     test_read_node();
 }
 
+/* For part 2, add myself with 0 happiness change for everyone */
+static void add_me(Graph *graph) {
+    GraphNodeNum my_num = Graph_lookup_or_add(graph, "Me");
+
+    for(GraphNodeNum x = 0; x < graph->num_nodes; x++) {
+        if( x == my_num )
+            continue;
+        
+        Graph_add(graph, my_num, x, 0);
+        Graph_add(graph, x, my_num, 0);
+    }
+}
+
 int main(int argc, char **argv) {
     if( argc == 1 ) {
         runtests();
@@ -113,6 +126,8 @@ int main(int argc, char **argv) {
         FILE *input = open_file(argv[1], "r");
         Graph *graph = read_graph(input);
 
+        add_me(graph);
+        
         if( DEBUG )
             Graph_print(graph);
         
