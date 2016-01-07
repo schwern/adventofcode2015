@@ -20,7 +20,7 @@ static void init_regexes() {
     if( !Line_Re )
         Line_Re = compile_regex(
             "^ \\s* "
-            "  (?<FROM>[[:alpha:]]+) \\s+ to \\s+ (?<TO>[[:alpha:]]+) \\s* = \\s* (?<DISTANCE>\\d+) "
+            "  (?<FROM>[[:alpha:]]+) \\s+ to \\s+ (?<TO>[[:alpha:]]+) \\s* = \\s* (?<COST>\\d+) "
             "\\s* $ ",
             G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
             0
@@ -39,14 +39,14 @@ static void read_node(char *line, void *_graph) {
     if( g_regex_match(Line_Re, line, 0, &match) ) {
         char *from              = g_match_info_fetch_named(match, "FROM");
         char *to                = g_match_info_fetch_named(match, "TO");
-        char *distance_str      = g_match_info_fetch_named(match, "DISTANCE");
-        GraphDistance distance = (GraphDistance)atoi(distance_str);
-        Graph_add_named(graph, from, to, distance);
+        char *cost_str          = g_match_info_fetch_named(match, "COST");
+        GraphCost cost = (GraphCost)atoi(cost_str);
+        Graph_add_named(graph, from, to, cost);
         
         g_match_info_free(match);
         free(from);
         free(to);
-        free(distance_str);
+        free(cost_str);
     }
     else if( g_regex_match(Blank_Line_Re, line, 0, NULL) ) {
         return;

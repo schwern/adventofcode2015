@@ -40,18 +40,18 @@ void read_node( char *line, void *_graph ) {
         char *to        = g_match_info_fetch_named(match, "TO");
         char *happiness = g_match_info_fetch_named(match, "HAPPINESS");
         char *sign      = g_match_info_fetch_named(match, "SIGN");
-        GraphDistance distance = (GraphDistance)atoi(happiness);
+        GraphCost cost = (GraphCost)atoi(happiness);
 
         if( streq(sign, "gain") )
-            distance = -distance;
+            cost = -cost;
 
         GraphNodeNum from_num = Graph_lookup_or_add(graph, from);
         GraphNodeNum to_num   = Graph_lookup_or_add(graph, to);
         
         /* We only care about the total happiness gained/lost.
-           It's easier if we model this as a symmetrical distance */
-        Graph_increment(graph, from_num, to_num, distance);
-        Graph_increment(graph, to_num, from_num, distance);
+           It's easier if we model this as a symmetrical cost */
+        Graph_increment(graph, from_num, to_num, cost);
+        Graph_increment(graph, to_num, from_num, cost);
 
         g_match_info_free(match);
         free(from);

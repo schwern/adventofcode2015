@@ -16,6 +16,13 @@ Graph *Graph_new(GraphNodeNum max_nodes) {
 
     graph->num_nodes = 0;
     graph->max_nodes = max_nodes;
+
+    /* Set all node connections to infinite cost */
+    for(GraphNodeNum x = 0; x < graph->num_nodes; x++) {
+        for(GraphNodeNum y = 0; y < graph->num_nodes; y++) {
+            Graph_add(graph, x, y, INFINITY);
+        }
+    }
     
     return graph;
 }
@@ -200,7 +207,7 @@ GraphNodeNum Graph_lookup_or_add(Graph *self, char *name) {
     return *num;
 }
 
-static void Graph_add(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphDistance distance) {
+void Graph_add(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphCost cost) {
     GraphNodeNum num_nodes = self->num_nodes;
     GraphNodeNum max_nodes = self->max_nodes;
     
@@ -208,19 +215,19 @@ static void Graph_add(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphDist
         die("%d is too big, the graph can only handle %d nodes", MAX(from, to), max_nodes);
 
     /* Edge costs are symetrical */
-    EDGE(self, from, to) = distance;
-    EDGE(self, to, from) = distance;
+    EDGE(self, from, to) = cost;
+    EDGE(self, to, from) = cost;
 
     /* Increase the number of nodes, if necessary */
     if( from > num_nodes || to > num_nodes )
         self->num_nodes = MAX(from, to);
 }
 
-void Graph_add_named(Graph *self, char *from, char *to, GraphDistance distance) {
+void Graph_add_named(Graph *self, char *from, char *to, GraphCost cost) {
     GraphNodeNum from_num = Graph_lookup_or_add(self, from);
     GraphNodeNum to_num   = Graph_lookup_or_add(self, to);
 
-    Graph_add(self, from_num, to_num, distance);
+    Graph_add(self, from_num, to_num, cost);
 }
 
 GraphCost Graph_edge_cost_named(Graph *self, char *from, char *to) {
@@ -230,15 +237,15 @@ GraphCost Graph_edge_cost_named(Graph *self, char *from, char *to) {
     return Graph_edge_cost(self, from_num, to_num);
 }
 
-void Graph_increment(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphDistance distance) {
-    EDGE(self, from, to) = (EDGE(self, from, to) + distance);
+void Graph_increment(Graph *self, GraphNodeNum from, GraphNodeNum to, GraphCost cost) {
+    EDGE(self, from, to) = (EDGE(self, from, to) + cost);
 }
 
-void Graph_increment_named(Graph *self, char *from, char *to, GraphDistance distance) {
+void Graph_increment_named(Graph *self, char *from, char *to, GraphCost cost) {
     GraphNodeNum from_num = Graph_lookup(self, from);
     GraphNodeNum to_num   = Graph_lookup(self, to);
 
-    return Graph_increment(self, from_num, to_num, distance);
+    return Graph_increment(self, from_num, to_num, cost);
 }
 
 void Graph_print(Graph *self) {
