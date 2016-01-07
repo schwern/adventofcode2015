@@ -64,75 +64,69 @@ static inline char *GraphNodeSet_to_human(GraphNodeSet set) {
     return human;
 }
 
-static inline GraphNodeSet GraphNodeSet_flip(GraphNodeSet set, GraphNodeNum x, GraphNodeNum y) {
-    return set ^ (GraphNodeSet_mask(x) | GraphNodeSet_mask(y));
-}
-
 int Graph_min_cost_Calls = 0;
-static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum next, GraphNodeSet visited) {
+static GraphCost Graph_min_cost(Graph *self, GraphNodeNum start, GraphNodeNum current, GraphNodeSet visited) {
     if( DEBUG ) {
         char *human = GraphNodeSet_to_human(visited);
-        fprintf(stderr, "min_cost(%p, %d, %d, %s)\n", self, start, next, human);
+        fprintf(stderr, "min_cost(%p, %d, %d, %s)\n", self, start, current, human);
         free(human);
     }
     
     /* We could return 0, but it probably indicates an error in the algorithm */
-    assert( start != next );
+    assert( start != current );
 
-    /* We must not have already visited the next node */
-    assert( !GraphNodeSet_is_in_set(visited, next) );
+    /* We must have already visited the start and current nodes */
+    assert( GraphNodeSet_is_in_set(visited, start) );
+    assert( GraphNodeSet_is_in_set(visited, current) );
     
     /* Symmetrical optimization.
-           min_cost(x, y, visited) == min_cost(y, x, visited ^ (x|y))
        That is, if you swap your start and end points, but visit the same places
        in-between, it's going to be the same minimum distance. */
-    if( start > next ) {
-        return Graph_min_cost( self, next, start, GraphNodeSet_flip(visited, start, next) );
+    if( start > current ) {
+        return Graph_min_cost( self, current, start, visited );
     }
 
     /* After the symmetric optimization */
     Graph_min_cost_Calls++;
+
+    /* Remove ourselves from the visited set, we're going to ask how we got here. */
+    visited = GraphNodeSet_remove_from_set(visited, current);
+
+    /* Terminating case */
+    if( GraphNodeSet_is_only_one_in_set(visited, start) )
+        return Graph_edge_cost(self, start, current);
     
     /* Figure out what it would cost to come from each visited node */
     GraphCost cost = INFINITY;
     for( GraphNodeNum prev = 0; prev < self->num_nodes; prev++ ) {
-        if( prev == start ) {
-            /* Only the starting point has been visited, next must be one hop away */
-            if( GraphNodeSet_is_only_one_in_set(visited, start) ) {
-                GraphCost edge_cost = Graph_edge_cost(self, start, next);
-                if( DEBUG )
-                    fprintf(stderr, "Starting edge %d to %d = %f\n", start, next, edge_cost);
-                return edge_cost;
-            }
-            /* We can't have come from the start if others have been visited */
-            else
-                continue;
-        }
+        /* Can't have come from it if we didn't visit it. */
+        if( !GraphNodeSet_is_in_set( visited, prev ) )
+            continue;
+
+        /* Can only visit the start if it's the only thing left and we took care of that */
+        if( prev == start )
+            continue;
 
         if( DEBUG )
-            fprintf(stderr, "cost = %f\n", cost);
+            fprintf(stderr, "prev: %d, current: %d\n", prev, current);
         
-        /* This node was previously visited */
-        if( GraphNodeSet_is_in_set(visited, prev) ) {
-            /* The edge cost to get from prev to next */
-            GraphCost prev_cost = Graph_edge_cost(self, next, prev);
+        GraphCost prev_cost = Graph_edge_cost(self, prev, current);
+        if( DEBUG )
+            fprintf(stderr, "\tedge cost: %.0f\n", prev_cost);
+        
+        /* It's already more expensive, forget it */
+        if( prev_cost > cost )
+            continue;
+        
+        prev_cost += Graph_min_cost(self, start, prev, visited);
 
-            if( DEBUG )
-                fprintf(stderr, "prev edge cost = %f\n", prev_cost);
-            
-            /* No point in continuing, it's more expensive than another route */
-            if( prev_cost > cost )
-                continue;
+        if( DEBUG )
+            fprintf(stderr, "\tprev_cost: %.0f\n", prev_cost);
+        
+        cost = MIN(prev_cost, cost);
 
-            /* The cost to back to the start from prev */
-            prev_cost += Graph_min_cost(self, start, prev, GraphNodeSet_remove_from_set(visited, prev));
-
-            if( DEBUG )
-                fprintf(stderr, "prev_cost = %f\n", prev_cost);
-            
-            /* Is this the best yet? */
-            cost = MIN(cost, prev_cost);
-        }
+        if( DEBUG )
+            fprintf(stderr, "\tcost: %.0f\n", cost);
     }
 
     return cost;
@@ -169,7 +163,6 @@ GraphCost Graph_shortest_route_cost_from(Graph *self, GraphNodeNum start, bool r
         
         GraphNodeSet visited = 0;
         visited = GraphNodeSet_fill(self->num_nodes);
-        visited = GraphNodeSet_remove_from_set(visited, end);
 
         GraphCost new_cost = Graph_min_cost(self, start, end, visited);
         if( return_to_start )
