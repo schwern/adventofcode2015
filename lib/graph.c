@@ -248,14 +248,13 @@ void Graph_increment_named(Graph *self, char *from, char *to, GraphDistance dist
 void Graph_print(Graph *self) {
     for(GraphNodeNum x = 0; x < self->num_nodes; x++) {
         for(GraphNodeNum y = 0; y < self->num_nodes; y++) {
-            GraphDistance distance = EDGE(self, x, y);
-            GraphCost cost         = Graph_edge_cost(self, x, y);
+            GraphCost cost = Graph_edge_cost(self, x, y);
 
-            if( distance ) {
+            if( cost ) {
                 char *x_name = self->node2name[x];
                 char *y_name = self->node2name[y];
 
-                printf("%s/%d to %s/%d = %d/%f\n", x_name, x, y_name, y, distance, cost);
+                printf("%s/%d to %s/%d = %.0f\n", x_name, x, y_name, y, cost);
             }
         }
     }
