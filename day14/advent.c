@@ -125,6 +125,39 @@ static int race_reindeer(Reindeer **reindeers, int num_reindeer, int race_length
     return max_of(distances, num_reindeer);
 }
 
+static int read_and_race_reindeer(FILE *input, int race_length) {
+    int max_reindeer = 10;
+    Reindeer **reindeers = calloc(max_reindeer, sizeof(Reindeer*));
+
+    char *line = NULL;
+    size_t line_len = 0;
+
+    int num_reindeer = 0;
+    while( getline(&line, &line_len, input) > 0 ) {
+        if( num_reindeer >= max_reindeer ) {
+            max_reindeer *= 2;
+            reindeers = realloc(reindeers, sizeof(Reindeer*) * max_reindeer);
+        }
+        
+        Reindeer *reindeer = NULL;
+        read_reindeer_line(line, &reindeer);
+        reindeers[num_reindeer] = reindeer;
+        num_reindeer++;
+    }
+    free(line);
+    
+    int best_distance = race_reindeer(reindeers, num_reindeer, race_length);
+
+    for( int i = 0; i < num_reindeer; i++ ) {
+        Reindeer_destroy(reindeers[i]);
+    }
+
+    free(reindeers);
+
+    return best_distance;
+}
+
+
 #define NUM_TEST_REINDEER 2
 char *Test_Lines[NUM_TEST_REINDEER] = {
     "Comet can fly 14 km/s for 10 seconds, but then must rest for 127 seconds.\n",
@@ -183,16 +216,26 @@ static void test_race_reindeer() {
 static void run_tests() {
     printf("Running tests\n");
 
-    init_regexes();
-    
     test_reindeer();
     test_race_reindeer();
 
-    free_regexes();
-    
     printf("OK\n");
 }
 
 int main(int argc, char *argv[]) {
-    run_tests();
+    init_regexes();
+    
+    if( argc == 2 ) {
+        FILE *input = open_file(argv[1], "r");
+        printf("%d\n", read_and_race_reindeer(input, 2503));
+    }
+    else if( argc == 1 ) {
+        run_tests();
+    }
+    else {
+        char *desc[] = {argv[0], "<input file>"};
+        usage(2, desc);
+    }
+
+    free_regexes();
 }
