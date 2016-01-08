@@ -189,20 +189,6 @@ static void tests() {
     test_sum_json_string();
 }
 
-static void sum_all_lines(char *line, void *_sum) {
-    int *sum = (int *)_sum;
-    
-    *sum += sum_all_numbers(line);
-}
-
-static int read_all_numbers(FILE *input) {
-    int sum = 0;
-    
-    foreach_line(input, sum_all_lines, &sum);
-
-    return sum;
-}
-
 static int sum_json(FILE *input) {
     GError *error = NULL;
     JsonParser *parser = json_parser_new();
