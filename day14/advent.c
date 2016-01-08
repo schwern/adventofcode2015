@@ -112,17 +112,28 @@ static int max_of(int things[], int num_things) {
 
 static int race_reindeer(Reindeer **reindeers, int num_reindeer, int race_length) {
     int distances[num_reindeer];
+    int points[num_reindeer];
     for( int i = 0; i < num_reindeer; i++ ) {
-        distances[i] = 0;
+        points[i]       = 0;
+        distances[i]    = 0;
     }
     
     for( int time = 1; time <= race_length; time++ ) {
+        int lead = 0;
+ 
         for( int j = 0; j < num_reindeer; j++ ) {
             distances[j] += Reindeer_travel(reindeers[j], time);
+            lead = MAX(lead, distances[j]);
+        }
+
+        for( int j = 0; j < num_reindeer; j++ ) {
+            if( distances[j] >= lead ) {
+                points[j]++;
+            }
         }
     }
 
-    return max_of(distances, num_reindeer);
+    return max_of(points, num_reindeer);
 }
 
 static int read_and_race_reindeer(FILE *input, int race_length) {
@@ -206,7 +217,7 @@ static void test_race_reindeer() {
         reindeers[i] = reindeer;
     }
 
-    assert( race_reindeer(reindeers, NUM_TEST_REINDEER, 1000) == 1120 );
+    assert( race_reindeer(reindeers, NUM_TEST_REINDEER, 1000) == 689 );
 
     for( int i = 0; i < NUM_TEST_REINDEER; i++ ) {
         Reindeer_destroy(reindeers[i]);
