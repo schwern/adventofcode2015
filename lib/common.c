@@ -54,6 +54,20 @@ GRegex *compile_regex(
     return re;
 }
 
+bool is_blank(char *line) {
+    static GRegex *blank_line_re = NULL;
+
+    if( !blank_line_re ) {
+        blank_line_re = compile_regex(
+            "^ \\s* $",
+            G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
+            0
+        );
+    }
+
+    return g_regex_match(blank_line_re, line, 0, NULL);
+}
+
 void die(char *format, ...) {
     va_list args;
     

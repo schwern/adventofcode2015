@@ -7,16 +7,8 @@
 #include "graph.h"
 
 GRegex *Line_Re;
-GRegex *Blank_Line_Re;
 
 static void init_regexes() {
-    if( !Blank_Line_Re )
-        Blank_Line_Re = compile_regex(
-            "^ \\s* $",
-            G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
-            0
-        );
-
     if( !Line_Re )
         Line_Re = compile_regex(
             "^ \\s* "
@@ -28,7 +20,6 @@ static void init_regexes() {
 }
 
 static void free_regexes() {
-    g_regex_unref(Blank_Line_Re);
     g_regex_unref(Line_Re);
 }
 
@@ -48,7 +39,7 @@ static void read_node(char *line, void *_graph) {
         free(to);
         free(cost_str);
     }
-    else if( g_regex_match(Blank_Line_Re, line, 0, NULL) ) {
+    else if( is_blank(line) ) {
         return;
     }
     else {
