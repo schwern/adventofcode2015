@@ -108,6 +108,9 @@ static inline long property_score(GArray *ingredients, int measures[], int prope
 static long recipe_score(GArray *ingredients, int *measures) {
     long score = 1;
 
+    if( property_score(ingredients, measures, CALORIES) != 500 )
+        return 0;
+    
     score *= property_score(ingredients, measures, CAPACITY);
     score *= property_score(ingredients, measures, DURABILITY);
     score *= property_score(ingredients, measures, FLAVOR);
