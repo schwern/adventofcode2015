@@ -101,7 +101,8 @@ static inline long property_score(GArray *ingredients, int measures[], int prope
     for( int i = 0; i < ingredients->len; i++ ) {
         score += measures[i] * Ingredients_get(ingredients, i)->props[property];
     }
-    return score;
+
+    return score < 0 ? 0 : score;
 }
 
 static long recipe_score(GArray *ingredients, int *measures) {
@@ -147,12 +148,12 @@ static long best_ingredients_combo( GArray *ingredients, int total ) {
     size_t num = ingredients->len;
     int *measures = calloc(num, sizeof(int));
     long score = 0;
-    
+
     measures[0] = total;
     do {
-        score = MAX( score, recipe_score(ingredients, measures) );
+        score = MAX(score, recipe_score(ingredients, measures));
     } while( increment_measures(measures, num, total) );
-    
+
     free(measures);
 
     return score;
@@ -188,12 +189,17 @@ static void test_ingredients() {
     assert( cinnamon->props[TEXTURE]         == -1 );
     assert( cinnamon->props[CALORIES]        == 3 );
 
-    int measures[] = {44, 56};
-    
+    int measures[] = {44, 56};    
     assert( property_score(ingredients, measures, CAPACITY) == 68 );
     assert( recipe_score(ingredients, measures) == 62842880 );
 
-    //assert( best_ingredients_combo(ingredients, 100) == 62842880 );
+    /* Negative scores are 0 */
+    measures[0] = 100;
+    measures[1] = 0;
+    assert( property_score(ingredients, measures, CAPACITY) == 0 );
+    assert( recipe_score(ingredients, measures) == 0 );
+    
+    assert( best_ingredients_combo(ingredients, 100) == 62842880 );
     
     Ingredients_destroy(ingredients, true);
     
