@@ -79,7 +79,18 @@ static void read_recipe( char *line, void *_recipes ) {
     }
 }
 
+static inline GArray *Recipes_new() {
+    return g_array_new(false, true, sizeof(recipe_t*));
+}
 
+static void Recipes_destroy(GArray *self, bool destroy_elements) {
+    if( destroy_elements ) {
+        for( int i = 0; i < self->len; i++ ) {
+            Recipe_destroy( g_array_index(self, recipe_t*, i) );
+        }
+    }
+    g_array_free(self, true);
+}
 
 static void test_recipe_score() {
     printf("test_recipe_score...");
@@ -90,7 +101,7 @@ static void test_recipe_score() {
         "Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3\n"
     };
 
-    GArray *recipes = g_array_new(false, true, sizeof(recipe_t*));
+    GArray *recipes = Recipes_new();
     for( int i = 0; i < num_lines; i++ ) {
         read_recipe(lines[i], recipes);
     }
@@ -111,10 +122,8 @@ static void test_recipe_score() {
     assert( cinnamon->texture         == -1 );
     assert( cinnamon->calories        == 3 );
 
-    Recipe_destroy(butterscotch);
-    Recipe_destroy(cinnamon);
-    g_array_free(recipes, true);
-
+    Recipes_destroy(recipes, true);
+    
     puts("OK");
 }
 
