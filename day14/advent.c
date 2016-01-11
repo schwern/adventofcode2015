@@ -48,17 +48,9 @@ static void Reindeer_print(Reindeer *self) {
     );
 }
 
-GRegex *Blank_Line_Re;
 GRegex *Line_Re;
 
 static void init_regexes() {
-    if( !Blank_Line_Re )
-        Blank_Line_Re = compile_regex(
-            "^ \\s* $",
-            G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
-            0
-        );
-
     if( !Line_Re )
         Line_Re = compile_regex(
             "^(?<NAME>[[:alpha:]]+) can fly (?<FLIGHT_SPEED>\\d+) km/s for (?<FLIGHT_TIME>\\d+) seconds, but then must rest for (?<REST_TIME>\\d+) seconds\\.$",
@@ -68,7 +60,6 @@ static void init_regexes() {
 }
 
 static void free_regexes() {
-    g_regex_unref(Blank_Line_Re);
     g_regex_unref(Line_Re);
 }
 
@@ -94,7 +85,7 @@ static void read_reindeer_line( char *line, Reindeer **reindeer_p ) {
         free(flight_time);
         free(rest_time);
     }
-    else if( !g_regex_match(Blank_Line_Re, line, 0, NULL) ) {
+    else if( !is_blank(line) ) {
         die("Unknown line '%s'", line);
     }
 
@@ -152,8 +143,10 @@ static int read_and_race_reindeer(FILE *input, int race_length) {
         
         Reindeer *reindeer = NULL;
         read_reindeer_line(line, &reindeer);
-        reindeers[num_reindeer] = reindeer;
-        num_reindeer++;
+        if( reindeer ) {
+            reindeers[num_reindeer] = reindeer;
+            num_reindeer++;
+        }
     }
     free(line);
     

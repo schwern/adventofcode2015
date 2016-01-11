@@ -48,4 +48,6 @@ static inline bool streq(const char *a, const char *b) {
 
 char *num_to_str(long num);
 
+bool is_blank(char *line);
+
 #endif

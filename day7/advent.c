@@ -9,17 +9,8 @@
 #include "gate.h"
 
 GRegex *Gate_Line_Re;
-GRegex *Blank_Line_Re;
 
 static void init_regexes() {
-    if( !Blank_Line_Re ) {
-        Blank_Line_Re = compile_regex(
-            "^ \\s* $",
-            G_REGEX_OPTIMIZE | G_REGEX_EXTENDED,
-            0
-        );
-    }
-    
     if( !Gate_Line_Re ) {
         Gate_Line_Re = compile_regex(
             " ^ \\s* "
@@ -111,7 +102,7 @@ static bool is_number(char *key) {
 static Gate *read_gate_line(char *line, char **inputs) {
     GMatchInfo *match;
 
-    if( g_regex_match(Blank_Line_Re, line, 0, NULL) ) {
+    if( is_blank(line) ) {
         if( DEBUG )
             fprintf(stderr, "Blank line.\n");
         return NULL;
