@@ -30,22 +30,22 @@ typedef struct {
     int flavor;
     int texture;
     int calories;
-} recipe_t;
+} ingredient_t;
 
-static recipe_t* Recipe_new(char *name) {
-    recipe_t *recipe = calloc(1, sizeof(recipe_t));
-    recipe->name = strdup(name);
+static ingredient_t* Ingredient_new(char *name) {
+    ingredient_t *ingredient = calloc(1, sizeof(ingredient_t));
+    ingredient->name = strdup(name);
 
-    return recipe;
+    return ingredient;
 }
 
-static void Recipe_destroy(recipe_t *self) {
+static void Ingredient_destroy(ingredient_t *self) {
     free(self->name);
     free(self);
 }
 
-static void read_recipe( char *line, void *_recipes ) {
-    GArray *recipes = (GArray *)_recipes;
+static void read_ingredient( char *line, void *_ingredients ) {
+    GArray *ingredients = (GArray *)_ingredients;
 
     GMatchInfo *match;
     
@@ -57,14 +57,14 @@ static void read_recipe( char *line, void *_recipes ) {
         char *tex   = g_match_info_fetch_named(match, "TEX");
         char *cal   = g_match_info_fetch_named(match, "CAL");
 
-        recipe_t *recipe = Recipe_new(name);
-        recipe->capacity        = atoi(cap);
-        recipe->durability      = atoi(dur);
-        recipe->flavor          = atoi(fla);
-        recipe->texture         = atoi(tex);
-        recipe->calories        = atoi(cal);
+        ingredient_t *ingredient = Ingredient_new(name);
+        ingredient->capacity        = atoi(cap);
+        ingredient->durability      = atoi(dur);
+        ingredient->flavor          = atoi(fla);
+        ingredient->texture         = atoi(tex);
+        ingredient->calories        = atoi(cal);
 
-        g_array_append_val(recipes, recipe);
+        g_array_append_val(ingredients, ingredient);
 
         g_match_info_free(match);
         free(name);
@@ -79,21 +79,21 @@ static void read_recipe( char *line, void *_recipes ) {
     }
 }
 
-static inline GArray *Recipes_new() {
-    return g_array_new(false, true, sizeof(recipe_t*));
+static inline GArray *Ingredients_new() {
+    return g_array_new(false, true, sizeof(ingredient_t*));
 }
 
-static void Recipes_destroy(GArray *self, bool destroy_elements) {
+static void Ingredients_destroy(GArray *self, bool destroy_elements) {
     if( destroy_elements ) {
         for( int i = 0; i < self->len; i++ ) {
-            Recipe_destroy( g_array_index(self, recipe_t*, i) );
+            Ingredient_destroy( g_array_index(self, ingredient_t*, i) );
         }
     }
     g_array_free(self, true);
 }
 
-static void test_recipe_score() {
-    printf("test_recipe_score...");
+static void test_ingredients() {
+    printf("test_ingredient_score...");
     
     int num_lines = 2;
     char *lines[] = {
@@ -101,12 +101,12 @@ static void test_recipe_score() {
         "Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3\n"
     };
 
-    GArray *recipes = Recipes_new();
+    GArray *ingredients = Ingredients_new();
     for( int i = 0; i < num_lines; i++ ) {
-        read_recipe(lines[i], recipes);
+        read_ingredient(lines[i], ingredients);
     }
 
-    recipe_t *butterscotch = g_array_index(recipes, recipe_t*, 0);
+    ingredient_t *butterscotch = g_array_index(ingredients, ingredient_t*, 0);
     assert( streq(butterscotch->name, "Butterscotch") );
     assert( butterscotch->capacity        == -1 );
     assert( butterscotch->durability      == -2 );
@@ -114,7 +114,7 @@ static void test_recipe_score() {
     assert( butterscotch->texture         == 3 );
     assert( butterscotch->calories        == 8 );
 
-    recipe_t *cinnamon = g_array_index(recipes, recipe_t*, 1);
+    ingredient_t *cinnamon = g_array_index(ingredients, ingredient_t*, 1);
     assert( streq(cinnamon->name, "Cinnamon") );
     assert( cinnamon->capacity        == 2 );
     assert( cinnamon->durability      == 3 );
@@ -122,13 +122,13 @@ static void test_recipe_score() {
     assert( cinnamon->texture         == -1 );
     assert( cinnamon->calories        == 3 );
 
-    Recipes_destroy(recipes, true);
+    Ingredients_destroy(ingredients, true);
     
     puts("OK");
 }
 
 static void runtests() {
-    test_recipe_score();
+    test_ingredients();
 }
 
 int main(int argc, char *argv[]) {
