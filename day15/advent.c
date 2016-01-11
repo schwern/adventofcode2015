@@ -23,13 +23,13 @@ static void init_regexes() {
     }
 }
 
+typedef enum {
+    CAPACITY, DURABILITY, FLAVOR, TEXTURE, CALORIES, NUM_PROP_TYPES
+} prop_types;
+
 typedef struct {
     char *name;
-    int capacity;
-    int durability;
-    int flavor;
-    int texture;
-    int calories;
+    int props[NUM_PROP_TYPES];
 } ingredient_t;
 
 static ingredient_t* Ingredient_new(char *name) {
@@ -58,11 +58,11 @@ static void read_ingredient( char *line, void *_ingredients ) {
         char *cal   = g_match_info_fetch_named(match, "CAL");
 
         ingredient_t *ingredient = Ingredient_new(name);
-        ingredient->capacity        = atoi(cap);
-        ingredient->durability      = atoi(dur);
-        ingredient->flavor          = atoi(fla);
-        ingredient->texture         = atoi(tex);
-        ingredient->calories        = atoi(cal);
+        ingredient->props[CAPACITY]     = atoi(cap);
+        ingredient->props[DURABILITY]   = atoi(dur);
+        ingredient->props[FLAVOR]       = atoi(fla);
+        ingredient->props[TEXTURE]      = atoi(tex);
+        ingredient->props[CALORIES]     = atoi(cal);
 
         g_array_append_val(ingredients, ingredient);
 
@@ -92,6 +92,44 @@ static void Ingredients_destroy(GArray *self, bool destroy_elements) {
     g_array_free(self, true);
 }
 
+static inline ingredient_t *Ingredients_get(GArray *self, size_t index) {
+    return g_array_index(self, ingredient_t*, index);
+}
+
+static inline long property_score(GArray *ingredients, int measures[], int property) {
+    long score = 0;
+    for( int i = 0; i < ingredients->len; i++ ) {
+        score += measures[i] * Ingredients_get(ingredients, i)->props[property];
+    }
+    return score;
+}
+
+static long recipe_score(GArray *ingredients, int *measures) {
+    long score = 1;
+
+    score *= property_score(ingredients, measures, CAPACITY);
+    score *= property_score(ingredients, measures, DURABILITY);
+    score *= property_score(ingredients, measures, FLAVOR);
+    score *= property_score(ingredients, measures, TEXTURE);
+
+    return score;
+}
+
+/*
+static long best_ingredients_combo( GArray *ingredients, int total ) {
+    size_t num = ingredients->len;
+    int *measures = calloc(num, sizeof(int));
+    long score = 0;
+    
+    measures[0] = total;
+    do {
+        MAX( score, recipe_score(ingredients, measures) );
+    } while( increment_measures(measures, total) );
+    
+    free(measures);
+}
+*/
+
 static void test_ingredients() {
     printf("test_ingredient_score...");
     
@@ -108,19 +146,26 @@ static void test_ingredients() {
 
     ingredient_t *butterscotch = g_array_index(ingredients, ingredient_t*, 0);
     assert( streq(butterscotch->name, "Butterscotch") );
-    assert( butterscotch->capacity        == -1 );
-    assert( butterscotch->durability      == -2 );
-    assert( butterscotch->flavor          == 6 );
-    assert( butterscotch->texture         == 3 );
-    assert( butterscotch->calories        == 8 );
+    assert( butterscotch->props[CAPACITY]        == -1 );
+    assert( butterscotch->props[DURABILITY]      == -2 );
+    assert( butterscotch->props[FLAVOR]          == 6 );
+    assert( butterscotch->props[TEXTURE]         == 3 );
+    assert( butterscotch->props[CALORIES]        == 8 );
 
     ingredient_t *cinnamon = g_array_index(ingredients, ingredient_t*, 1);
     assert( streq(cinnamon->name, "Cinnamon") );
-    assert( cinnamon->capacity        == 2 );
-    assert( cinnamon->durability      == 3 );
-    assert( cinnamon->flavor          == -2 );
-    assert( cinnamon->texture         == -1 );
-    assert( cinnamon->calories        == 3 );
+    assert( cinnamon->props[CAPACITY]        == 2 );
+    assert( cinnamon->props[DURABILITY]      == 3 );
+    assert( cinnamon->props[FLAVOR]          == -2 );
+    assert( cinnamon->props[TEXTURE]         == -1 );
+    assert( cinnamon->props[CALORIES]        == 3 );
+
+    int measures[] = {44, 56};
+    
+    assert( property_score(ingredients, measures, CAPACITY) == 68 );
+    assert( recipe_score(ingredients, measures) == 62842880 );
+
+    //assert( best_ingredients_combo(recipes, 100) == 62842880 );
 
     Ingredients_destroy(ingredients, true);
     
