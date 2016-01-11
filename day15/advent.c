@@ -115,7 +115,34 @@ static long recipe_score(GArray *ingredients, int *measures) {
     return score;
 }
 
-/*
+static bool increment_measures( int *measures, int num, int max ) {
+    int sum = 0;
+    int end = num-1;
+    for( int i = end; i >= 0; i-- ) {
+        sum += measures[i];
+        if( sum == max ) {
+            /* Done */
+            if( i == end )
+                return false;
+
+            /* Hand a digit up */
+            measures[i]--;
+            measures[i+1]++;
+
+            if( measures[i+1] == max )
+                return true;
+
+            /* Carry operation */
+            if( i != 0 ) {
+                measures[0] = measures[i];
+                measures[i] = 0;
+            }
+        }
+    }
+
+    return true;
+}
+
 static long best_ingredients_combo( GArray *ingredients, int total ) {
     size_t num = ingredients->len;
     int *measures = calloc(num, sizeof(int));
@@ -123,12 +150,13 @@ static long best_ingredients_combo( GArray *ingredients, int total ) {
     
     measures[0] = total;
     do {
-        MAX( score, recipe_score(ingredients, measures) );
-    } while( increment_measures(measures, total) );
+        score = MAX( score, recipe_score(ingredients, measures) );
+    } while( increment_measures(measures, num, total) );
     
     free(measures);
+
+    return score;
 }
-*/
 
 static void test_ingredients() {
     printf("test_ingredient_score...");
@@ -165,15 +193,56 @@ static void test_ingredients() {
     assert( property_score(ingredients, measures, CAPACITY) == 68 );
     assert( recipe_score(ingredients, measures) == 62842880 );
 
-    //assert( best_ingredients_combo(recipes, 100) == 62842880 );
-
+    //assert( best_ingredients_combo(ingredients, 100) == 62842880 );
+    
     Ingredients_destroy(ingredients, true);
     
     puts("OK");
 }
 
+static void test_increment_measures() {
+    printf("test_increment_measures...");
+
+    /* Starting state */
+    int have[] = {5, 0, 0};
+    assert( increment_measures( have, 3, 5 ) );
+    assert( have[0] == 4 );
+    assert( have[1] == 1 );
+    assert( have[2] == 0 );
+
+    /* Carry */
+    have[0] = 0;
+    have[1] = 4;
+    have[2] = 1;
+    assert( increment_measures( have, 3, 5 ) );
+    assert( have[0] == 3 );
+    assert( have[1] == 0 );
+    assert( have[2] == 2 );
+    
+    /* 2nd to last state */
+    have[0] = 0;
+    have[1] = 1;
+    have[2] = 4;
+    assert( increment_measures( have, 3, 5 ) );
+    assert( have[0] == 0 );
+    assert( have[1] == 0 );
+    assert( have[2] == 5 );
+    
+    /* End state */
+    have[0] = 0;
+    have[1] = 0;
+    have[2] = 5;
+    assert( !increment_measures( have, 3, 5 ) );
+    assert( have[0] == 0 );
+    assert( have[1] == 0 );
+    assert( have[2] == 5 );
+
+    puts("OK");
+}
+
 static void runtests() {
     test_ingredients();
+    test_increment_measures();
 }
 
 int main(int argc, char *argv[]) {
