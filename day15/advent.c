@@ -119,6 +119,7 @@ static long recipe_score(GArray *ingredients, int *measures) {
 static bool increment_measures( int *measures, int num, int max ) {
     int sum = 0;
     int end = num-1;
+
     for( int i = end; i >= 0; i-- ) {
         sum += measures[i];
         if( sum == max ) {
@@ -138,6 +139,8 @@ static bool increment_measures( int *measures, int num, int max ) {
                 measures[0] = measures[i];
                 measures[i] = 0;
             }
+
+            return true;
         }
     }
 
@@ -157,6 +160,12 @@ static long best_ingredients_combo( GArray *ingredients, int total ) {
     free(measures);
 
     return score;
+}
+
+static GArray *read_ingredients(FILE *input) {
+    GArray *ingredients = Ingredients_new();
+    foreach_line(input, read_ingredient, ingredients);
+    return ingredients;
 }
 
 static void test_ingredients() {
@@ -210,7 +219,7 @@ static void test_increment_measures() {
     printf("test_increment_measures...");
 
     /* Starting state */
-    int have[] = {5, 0, 0};
+    int have[4] = {5, 0, 0};
     assert( increment_measures( have, 3, 5 ) );
     assert( have[0] == 4 );
     assert( have[1] == 1 );
@@ -244,6 +253,16 @@ static void test_increment_measures() {
     assert( have[2] == 5 );
 
     puts("OK");
+
+    have[0] = 0;
+    have[1] = 0;
+    have[2] = 5;
+    have[3] = 0;
+    assert( increment_measures( have, 4, 5 ) );
+    assert( have[0] == 4 );
+    assert( have[1] == 0 );
+    assert( have[2] == 0 );
+    assert( have[3] == 1 );
 }
 
 static void runtests() {
@@ -254,5 +273,17 @@ static void runtests() {
 int main(int argc, char *argv[]) {
     init_regexes();
 
-    runtests();
+    if( argc == 1 ) {
+        runtests();
+    }
+    else if( argc == 3 ) {
+        FILE *input = open_file(argv[1], "r");
+        GArray *ingredients = read_ingredients(input);
+        printf("%ld\n", best_ingredients_combo(ingredients, atoi(argv[2])));
+        Ingredients_destroy(ingredients, true);
+    }
+    else {
+        char *desc[] = {argv[0], "<input file>", "<total units>"};
+        usage(3, desc);
+    }
 }
