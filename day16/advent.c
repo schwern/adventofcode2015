@@ -38,8 +38,19 @@ static bool filter_aunt(char *prop_line, GHashTable *filter) {
         
         void *_want = g_hash_table_lookup( filter, key );
         int want = *(int *)_want;
-        if( have != want )
-            check = false;
+
+        if( streq(key, "cats") || streq(key, "trees") ) {
+            if( have <= want )
+                check = false;
+        }
+        else if( streq(key, "pomeranians") || streq(key, "goldfish") ) {
+            if( have >= want )
+                check = false;
+        }
+        else {
+            if( have != want )
+                check = false;
+        }
         
         g_strfreev(tuple);
 
