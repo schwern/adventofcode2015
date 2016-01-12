@@ -113,13 +113,74 @@ static void print_combo(GArray *containers, combo_size_t combo, container_size_t
     puts("");
 }
 
-static GArray *find_combos(GArray *containers, target_size_t target) {
+static inline size_t get_combo_size( combo_size_t combo, size_t num_containers ) {
+    size_t size = 0;
+    for( int i = 0; i < num_containers; i++ ) {
+        if( is_in_combo(combo, i) )
+            size++;
+    }
+
+    return size;
+}
+
+static void test_get_combo_size() {
+    printf("test_get_combo_size...");
+    
+    g_assert_cmpuint( get_combo_size(0L, 10), ==, 0 );
+    g_assert_cmpuint( get_combo_size(1L, 10), ==, 1 );
+    g_assert_cmpuint( get_combo_size(5L, 10), ==, 2 );
+
+    puts("OK");
+}
+
+static inline GArray *clear_array(GArray *array) {
+    if( array->len == 0 )
+        return array;
+    return g_array_remove_range(array, 0, array->len);    
+}
+
+static void test_clear_array() {
+    printf("test_clear_array...");
+    
+    GArray *array = g_array_new(false, true, sizeof(int));
+
+    clear_array(array);
+    g_assert_cmpuint( array->len, ==, 0 );
+    
+    int haves[] = {23, 42};
+    g_array_append_vals(array, haves, 2);
+
+    g_assert_cmpuint( array->len, ==, 2 );
+
+    clear_array(array);
+    g_assert_cmpuint( array->len, ==, 0 );
+
+    g_array_unref(array);
+    
+    puts("OK");
+}
+
+static GArray *find_combos(GArray *containers, target_size_t target, bool find_min_combos) {
     GArray *combos = g_array_new(false, true, sizeof(combo_size_t));
     size_t num_containers = containers->len;
+    size_t min_combo_size = SIZE_MAX;
     
     for( combo_size_t combo = 0; combo <= (1<<num_containers); combo++ ) {
-        if( try_combo(containers, combo, target) )
+        size_t combo_size = get_combo_size(combo, num_containers);
+
+        // Skip combos that are bigger than the minimum.
+        if( find_min_combos && combo_size > min_combo_size )
+            continue;
+            
+        if( try_combo(containers, combo, target) ) {
+            // If we found a smaller combo, throw out all previous combos
+            if( find_min_combos && combo_size < min_combo_size ) {
+                clear_array(combos);
+                min_combo_size = combo_size;
+            }
+            
             g_array_append_val(combos, combo);
+        }
     }
         
     return combos;
@@ -128,6 +189,8 @@ static GArray *find_combos(GArray *containers, target_size_t target) {
 static void runtests() {
     test_try_combo();
     test_read_container();
+    test_clear_array();
+    test_get_combo_size();
 }
 
 int main(int argc, char *argv[]) {
@@ -137,7 +200,7 @@ int main(int argc, char *argv[]) {
     else if( argc == 3 ) {
         FILE *input = open_file(argv[1], "r");
         GArray *containers = read_containers(input);
-        GArray *combos = find_combos(containers, atol(argv[2]));
+        GArray *combos = find_combos(containers, atol(argv[2]), true);
 
         for( int i = 0; i < combos->len; i++ ) {
             print_combo(containers, g_array_index(combos, combo_size_t, i), containers->len);
