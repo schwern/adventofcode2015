@@ -2,14 +2,20 @@
 #include <glib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <errno.h>
 
-static bool try_combo(GArray *containers, long combo, int target) {
+typedef int container_size_t;
+typedef long target_size_t;
+typedef long combo_size_t;
+
+static bool try_combo(GArray *containers, combo_size_t combo, target_size_t target) {
     size_t num_containers = containers->len;
 
-    int sum = 0;
+    target_size_t sum = 0;
     for( int i = 0; i < num_containers; i++ ) {
         if( combo & (1<<i) )
-            sum += g_array_index(containers, int, i);
+            sum += g_array_index(containers, container_size_t, i);
 
         if( sum > target )
             return false;
@@ -21,8 +27,8 @@ static bool try_combo(GArray *containers, long combo, int target) {
 static void test_try_combo() {
     printf("test_try_combo...");
     
-    int test_data[] = {20, 15, 10, 5, 5};
-    GArray *containers = g_array_new(false, true, sizeof(int));
+    container_size_t test_data[] = {20, 15, 10, 5, 5};
+    GArray *containers = g_array_new(false, true, sizeof(container_size_t));
 
     g_array_append_vals(containers, test_data, 5);
 
@@ -47,12 +53,80 @@ static void test_try_combo() {
     puts("OK");
 }
 
+static void read_container(char *line, void *_containers) {
+    if( is_blank(line) )
+        return;
+    
+    GArray *containers = (GArray*)_containers;
+
+    container_size_t size = atoi(line);
+    if( size == 0 && errno )
+        die("Unknown line '%s'");
+
+    g_array_append_val(containers, size);
+
+    return;
+}
+
+static void test_read_container() {
+    printf("test_read_container...");
+    
+    GArray *containers = g_array_new(false, true, sizeof(container_size_t));
+
+    read_container("", containers);
+    g_assert_cmpuint( containers->len, ==, 0 );
+
+    read_container("  ", containers);
+    g_assert_cmpuint( containers->len, ==, 0 );
+
+    read_container("23\n", containers);
+    g_assert_cmpuint( containers->len, ==, 1 );
+    g_assert_cmpint( g_array_index(containers, container_size_t, 0), ==, 23 );
+
+    read_container("0\n", containers);
+    g_assert_cmpuint( containers->len, ==, 2 );
+    g_assert_cmpint( g_array_index(containers, container_size_t, 1), ==, 0 );
+    
+    g_array_unref(containers);
+
+    puts("OK");
+}
+
+static GArray *read_containers(FILE *input) {
+    GArray *containers = g_array_new(false, true, sizeof(container_size_t));
+
+    foreach_line(input, read_container, containers);
+    
+    return containers;
+}
+
+static GArray *find_combos(GArray *containers, target_size_t target) {
+    GArray *combos = g_array_new(false, true, sizeof(combo_size_t));
+
+    return combos;
+}
+
 static void runtests() {
     test_try_combo();
+    test_read_container();
 }
 
 int main(int argc, char *argv[]) {
-    runtests();
+    if( argc == 1 ) {
+        runtests();
+    }
+    else if( argc == 3 ) {
+        FILE *input = open_file(argv[1], "r");
+        GArray *containers = read_containers(input);
+        GArray *combos = find_combos(containers, atol(argv[2]));
+
+        g_array_unref(containers);
+        g_array_unref(combos);
+    }
+    else {
+        char *desc[] = {argv[0], "<input file>", "<storage target>"};
+        usage(3, desc);
+    }
     
     return 0;
 }
