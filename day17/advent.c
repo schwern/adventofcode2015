@@ -100,9 +100,23 @@ static GArray *read_containers(FILE *input) {
     return containers;
 }
 
+static void print_combo(GArray *containers, combo_size_t combo, container_size_t num) {
+    for( int i = 0; i < num; i++ ) {
+        if( combo & (1<<i) )
+            printf("%d ", g_array_index(containers, container_size_t, i));
+    }
+    puts("");
+}
+
 static GArray *find_combos(GArray *containers, target_size_t target) {
     GArray *combos = g_array_new(false, true, sizeof(combo_size_t));
-
+    size_t num_containers = containers->len;
+    
+    for( combo_size_t combo = 0; combo <= (1<<num_containers); combo++ ) {
+        if( try_combo(containers, combo, target) )
+            g_array_append_val(combos, combo);
+    }
+        
     return combos;
 }
 
@@ -120,6 +134,10 @@ int main(int argc, char *argv[]) {
         GArray *containers = read_containers(input);
         GArray *combos = find_combos(containers, atol(argv[2]));
 
+        for( int i = 0; i < combos->len; i++ ) {
+            print_combo(containers, g_array_index(combos, combo_size_t, i), containers->len);
+        }
+        
         g_array_unref(containers);
         g_array_unref(combos);
     }
