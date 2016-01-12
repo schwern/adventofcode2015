@@ -63,9 +63,10 @@ static void read_container(char *line, void *_containers) {
     
     GArray *containers = (GArray*)_containers;
 
-    container_size_t size = atoi(line);
-    if( size == 0 && errno )
-        die("Unknown line '%s'");
+    errno = 0;
+    container_size_t size = strtol(line, NULL, 10);
+    if( size == 0 && errno == EINVAL)
+        die("Unknown line '%s'", line);
 
     g_array_append_val(containers, size);
 
