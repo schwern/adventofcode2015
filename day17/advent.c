@@ -9,12 +9,16 @@ typedef int container_size_t;
 typedef long target_size_t;
 typedef long combo_size_t;
 
+static inline bool is_in_combo( combo_size_t combo, int i ) {
+    return combo & (1<<i);
+}
+
 static bool try_combo(GArray *containers, combo_size_t combo, target_size_t target) {
     size_t num_containers = containers->len;
 
     target_size_t sum = 0;
     for( int i = 0; i < num_containers; i++ ) {
-        if( combo & (1<<i) )
+        if( is_in_combo(combo, i) )
             sum += g_array_index(containers, container_size_t, i);
 
         if( sum > target )
@@ -102,7 +106,7 @@ static GArray *read_containers(FILE *input) {
 
 static void print_combo(GArray *containers, combo_size_t combo, container_size_t num) {
     for( int i = 0; i < num; i++ ) {
-        if( combo & (1<<i) )
+        if( is_in_combo(combo, i) )
             printf("%d ", g_array_index(containers, container_size_t, i));
     }
     puts("");
