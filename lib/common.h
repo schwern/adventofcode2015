@@ -15,7 +15,7 @@
 #  define DEBUG 0
 #endif
 
-#define TWOD(array, x, y, y_size) array[x + (y*y_size)]
+#define TWOD(array, x, y, x_size) array[(x*x_size) + y]
 
 typedef void (*LineCB)(char *line, void *cb_data);
 
