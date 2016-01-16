@@ -2,10 +2,14 @@
 #include <assert.h>
 #include <stdio.h>
 #include <glib.h>
-#include <stdbool.h>
 #include <string.h>
 
-typedef bool Light;
+typedef short Light;
+
+enum {
+    OFF, ON, STUCK
+};
+
 typedef struct {
     size_t max_rows;
     size_t max_cols;
@@ -70,10 +74,10 @@ static void Lights_read_line(char *line, void *_lights) {
         char c = line[col];
         switch(c) {
             case '.':
-                Lights_set(lights, row, col, false);
+                Lights_set(lights, row, col, OFF);
                 break;
             case '#':
-                Lights_set(lights, row, col, true);
+                Lights_set(lights, row, col, ON);
                 break;
             case '\n':
                 break;
@@ -180,27 +184,27 @@ static void Lights_step(Lights *self) {
     for( int row = 0; row < self->max_rows; row++ ) {
         for( int col = 0; col < self->max_cols; col++ ) {
             Light light = Lights_get(self, row, col);
-            int num_on = Lights_num_neighbors(self, row, col, true);
+            int num_on = Lights_num_neighbors(self, row, col, ON);
 
             // A light which is on stays on when 2 or 3 neighbors are on, and turns off otherwise.
             if( light ) {
                 switch( num_on ) {
                     case 2:
                     case 3:
-                        TWOD(new_grid, row, col, self->max_rows) = true;
+                        TWOD(new_grid, row, col, self->max_rows) = ON;
                         break;
                     default:
-                        TWOD(new_grid, row, col, self->max_rows) = false;
+                        TWOD(new_grid, row, col, self->max_rows) = OFF;
                         break;
                 }
             }
             // A light which is off turns on if exactly 3 neighbors are on, and stays off otherwise.
             else {
                 if( num_on == 3 ) {
-                    TWOD(new_grid, row, col, self->max_rows) = true;
+                    TWOD(new_grid, row, col, self->max_rows) = ON;
                 }
                 else {
-                    TWOD(new_grid, row, col, self->max_rows) = false;
+                    TWOD(new_grid, row, col, self->max_rows) = OFF;
                 }
             }
         }
@@ -260,12 +264,12 @@ static void test_lights_step() {
 
     Lights *lights = Lights_new_from_strings(6, 6, start);
 
-    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, true),  ==, 1 );
-    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, false), ==, 2 );
-    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, true),  ==, 1 );
-    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, false), ==, 2 );
-    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, true),  ==, 2 );
-    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, false), ==, 6 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, ON),  ==, 1 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, OFF), ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, ON),  ==, 1 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, OFF), ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, ON),  ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, OFF), ==, 6 );
 
     Lights_step(lights);
     assert_lights_eq(lights, Lights_new_from_strings(6, 6, step1));
@@ -298,12 +302,12 @@ static void test_read_lights() {
     };
 
     Light want_array[6*6] = {
-        false, true, false, true, false, true,
-        false, false, false, true, true, false,
-        true, false, false, false, false, true,
-        false, false, true, false, false, false,
-        true, false, true, false, false, true,
-        true, true, true, true, false, false
+        OFF, ON, OFF, ON, OFF, ON,
+        OFF, OFF, OFF, ON, ON, OFF,
+        ON, OFF, OFF, OFF, OFF, ON,
+        OFF, OFF, ON, OFF, OFF, OFF,
+        ON, OFF, ON, OFF, OFF, ON,
+        ON, ON, ON, ON, OFF, OFF
     };
     Lights *want = Lights_new_from_array_copy(6, 6, want_array);
     Lights *have = Lights_new_from_strings(6, 6, input);
@@ -340,7 +344,7 @@ int main(int argc, char *argv[]) {
             Lights_step(lights);
         }
 
-        printf("%d\n", Lights_count(lights, true));
+        printf("%d\n", Lights_count(lights, ON));
 
         Lights_destroy(lights);
     }
