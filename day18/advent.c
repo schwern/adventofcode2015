@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <glib.h>
 #include <string.h>
+#include <stdbool.h>
 
 typedef short Light;
 
 enum {
-    OFF, ON, STUCK
+    OFF, ON, STUCK_OFF, STUCK_ON
 };
 
 typedef struct {
@@ -17,21 +18,38 @@ typedef struct {
     Light *grid;
 } Lights;
 
-static inline void Lights_set(Lights *self, size_t row, size_t col, Light setting) {
-    assert(row < self->max_rows);
-    assert(col < self->max_cols);
-    TWOD(self->grid, row, col, self->max_rows) = setting;
-}
-
 static inline Light Lights_get(Lights *self, size_t row, size_t col) {
     return TWOD(self->grid, row, col, self->max_rows);
+}
+
+static inline void Lights_set(Lights *self, size_t row, size_t col, Light new) {
+    assert(row < self->max_rows);
+    assert(col < self->max_cols);
+
+    Light old = Lights_get(self, row, col);
+    if( old == STUCK_OFF || old == STUCK_ON )
+        return;
+    
+    TWOD(self->grid, row, col, self->max_rows) = new;
+}
+
+static inline bool Lights_same_setting(Lights *self, size_t row, size_t col, Light want) {
+    Light state = Lights_get(self, row, col);
+    if( state == want )
+        return true;
+    else if( want == ON && state == STUCK_ON )
+        return true;
+    else if( want == OFF && state == STUCK_OFF )
+        return true;
+
+    return false;
 }
 
 static inline size_t Lights_get_next_row(Lights *self) {
     return self->rows;
 }
 
-static Light *Lights_new_grid(Lights *self) {
+static inline Light *Lights_new_grid(Lights *self) {
     return calloc(self->max_rows * self->max_cols, sizeof(Light));
 }
 
@@ -79,6 +97,12 @@ static void Lights_read_line(char *line, void *_lights) {
             case '#':
                 Lights_set(lights, row, col, ON);
                 break;
+            case '*':
+                Lights_set(lights, row, col, STUCK_ON);
+                break;
+            case 'X':
+                Lights_set(lights, row, col, STUCK_OFF);
+                break;
             case '\n':
                 break;
             default:
@@ -114,11 +138,20 @@ static void Lights_destroy(Lights *self) {
 static inline void Lights_print(Lights *self) {
     for( int row = 0; row < self->rows; row++ ) {
         for( int col = 0; col < self->max_cols; col++ ) {
-            if( Lights_get(self, row, col) ) {
-                printf("#");
-            }
-            else {
-                printf(".");
+            Light light = Lights_get(self, row, col);
+            switch(light) {
+                case ON:
+                    printf("#");
+                    break;
+                case OFF:
+                    printf(".");
+                    break;
+                case STUCK_ON:
+                    printf("*");
+                    break;
+                case STUCK_OFF:
+                    printf("X");
+                    break;
             }
         }
 
@@ -131,7 +164,7 @@ static inline int Lights_count(Lights *self, Light setting) {
     
     for( int row = 0; row < self->rows; row++ ) {
         for( int col = 0; col < self->max_cols; col++ ) {
-            if( Lights_get(self, row, col) == setting )
+            if( Lights_same_setting(self, row, col, setting) )
                 num_lights++;
         }
     }
@@ -143,6 +176,13 @@ static void assert_lights_eq(Lights *have, Lights *want) {
     g_assert_cmpuint(have->rows, ==, want->rows);
     g_assert_cmpuint(have->max_cols, ==, want->max_cols);
 
+    if( DEBUG ) {
+        puts("have");
+        Lights_print(have);
+        puts("want");
+        Lights_print(want);
+    }
+    
     for( int row = 0; row < want->max_rows; row++ ) {
         for( int col = 0; col < want->max_cols; col++ ) {
             g_assert_cmpint( Lights_get(have, row, col), ==, Lights_get(want, row, col) );
@@ -170,7 +210,7 @@ static int Lights_num_neighbors(Lights *self, size_t origin_row, size_t origin_c
                 continue;
             }
 
-            if( Lights_get(self, row, col) == setting )
+            if( Lights_same_setting(self, row, col, setting) )
                 num_neighbors++;
         }
     }
@@ -184,6 +224,12 @@ static void Lights_step(Lights *self) {
     for( int row = 0; row < self->max_rows; row++ ) {
         for( int col = 0; col < self->max_cols; col++ ) {
             Light light = Lights_get(self, row, col);
+
+            if( light == STUCK_ON || light == STUCK_OFF ) {
+                TWOD(new_grid, row, col, self->max_rows) = light;
+                continue;
+            }
+            
             int num_on = Lights_num_neighbors(self, row, col, ON);
 
             // A light which is on stays on when 2 or 3 neighbors are on, and turns off otherwise.
@@ -212,6 +258,94 @@ static void Lights_step(Lights *self) {
 
     free(self->grid);
     self->grid = new_grid;
+}
+
+static void test_lights_step_stuck() {
+    printf("test_lights_step_stuck...");
+    
+    char *start[] = {
+        "*#.#.*",
+        "...##.",
+        "#....#",
+        "..#...",
+        "#.#..#",
+        "*###.*"
+    };
+
+    char *step1[] = {
+        "*.##.*",
+        "####.#",
+        "...##.",
+        "......",
+        "#...#.",
+        "*.###*"
+    };
+
+    char *step2[] = {
+        "*..#.*",
+        "#....#",
+        ".#.##.",
+        "...##.",
+        ".#..##",
+        "*#.##*"
+    };
+
+    char *step3[] = {
+        "*...#*",
+        "####.#",
+        "..##.#",
+        "......",
+        "##....",
+        "*###.*"
+    };
+
+    char *step4[] = {
+        "*.###*",
+        "#....#",
+        "...#..",
+        ".##...",
+        "#.....",
+        "*.#..*"
+    };
+
+    char *step5[] = {
+        "*#.##*",
+        ".##..#",
+        ".##...",
+        ".##...",
+        "#.#...",
+        "*#...*"
+    };
+
+    Lights *lights = Lights_new_from_strings(6, 6, start);
+
+    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, ON),  ==, 1 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, OFF), ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, ON),  ==, 1 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, OFF), ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, ON),  ==, 3 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, OFF), ==, 5 );
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step1));
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step2));
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step3));
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step4));
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step5));
+
+    g_assert_cmpint( Lights_count(lights, ON), ==, 17 );
+        
+    Lights_destroy(lights);
+    
+    puts("OK");
 }
 
 static void test_lights_step() {
@@ -330,6 +464,7 @@ static void test_read_lights() {
 static void runtests() {
     test_read_lights();
     test_lights_step();
+    test_lights_step_stuck();
 }
 
 int main(int argc, char *argv[]) {
