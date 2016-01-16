@@ -13,6 +13,20 @@ typedef struct {
     Light *grid;
 } Lights;
 
+static inline void Lights_set(Lights *self, size_t row, size_t col, Light setting) {
+    assert(row < self->max_rows);
+    assert(col < self->max_cols);
+    TWOD(self->grid, row, col, self->max_rows) = setting;
+}
+
+static inline Light Lights_get(Lights *self, size_t row, size_t col) {
+    return TWOD(self->grid, row, col, self->max_rows);
+}
+
+static inline size_t Lights_get_next_row(Lights *self) {
+    return self->rows;
+}
+
 static Light *Lights_new_grid(Lights *self) {
     return calloc(self->max_rows * self->max_cols, sizeof(Light));
 }
@@ -47,51 +61,6 @@ static Lights *Lights_new_from_array_copy(size_t rows, size_t cols, Light *orig_
     return Lights_new_from_array(rows, cols, copy_grid);
 }
 
-static void Lights_destroy(Lights *self) {
-    free(self->grid);
-    free(self);
-}
-
-static inline void Lights_set(Lights *self, size_t row, size_t col, Light setting) {
-    assert(row < self->max_rows);
-    assert(col < self->max_cols);
-    TWOD(self->grid, row, col, self->max_rows) = setting;
-}
-
-static inline Light Lights_get(Lights *self, size_t row, size_t col) {
-    return TWOD(self->grid, row, col, self->max_rows);
-}
-
-static inline size_t Lights_get_next_row(Lights *self) {
-    return self->rows;
-}
-
-static inline void Lights_print(Lights *self) {
-    for( int row = 0; row < self->rows; row++ ) {
-        for( int col = 0; col < self->max_cols; col++ ) {
-            if( Lights_get(self, row, col) ) {
-                printf("#");
-            }
-            else {
-                printf(".");
-            }
-        }
-
-        puts("");
-    }
-}
-
-static void assert_lights_eq(Lights *have, Lights *want) {
-    g_assert_cmpuint(have->rows, ==, want->rows);
-    g_assert_cmpuint(have->max_cols, ==, want->max_cols);
-
-    for( int row = 0; row < want->max_rows; row++ ) {
-        for( int col = 0; col < want->max_cols; col++ ) {
-            g_assert_cmpint( Lights_get(have, row, col), ==, Lights_get(want, row, col) );
-        }
-    }
-}
-
 static void Lights_read_line(char *line, void *_lights) {
     Lights *lights = (Lights *)_lights;
     size_t row = Lights_get_next_row(lights);
@@ -123,6 +92,58 @@ static Lights *Lights_new_from_strings(size_t rows, size_t cols, char *lines[]) 
     }
 
     return self;
+}
+
+static Lights *Lights_new_from_fp(size_t rows, size_t cols, FILE *input) {
+    Lights *self = Lights_new(rows, cols);
+
+    foreach_line(input, Lights_read_line, self);
+
+    return self;
+}
+
+static void Lights_destroy(Lights *self) {
+    free(self->grid);
+    free(self);
+}
+
+static inline void Lights_print(Lights *self) {
+    for( int row = 0; row < self->rows; row++ ) {
+        for( int col = 0; col < self->max_cols; col++ ) {
+            if( Lights_get(self, row, col) ) {
+                printf("#");
+            }
+            else {
+                printf(".");
+            }
+        }
+
+        puts("");
+    }
+}
+
+static inline int Lights_count(Lights *self, Light setting) {
+    int num_lights = 0;
+    
+    for( int row = 0; row < self->rows; row++ ) {
+        for( int col = 0; col < self->max_cols; col++ ) {
+            if( Lights_get(self, row, col) == setting )
+                num_lights++;
+        }
+    }
+
+    return num_lights;
+}
+
+static void assert_lights_eq(Lights *have, Lights *want) {
+    g_assert_cmpuint(have->rows, ==, want->rows);
+    g_assert_cmpuint(have->max_cols, ==, want->max_cols);
+
+    for( int row = 0; row < want->max_rows; row++ ) {
+        for( int col = 0; col < want->max_cols; col++ ) {
+            g_assert_cmpint( Lights_get(have, row, col), ==, Lights_get(want, row, col) );
+        }
+    }
 }
 
 static int Lights_num_neighbors(Lights *self, size_t origin_row, size_t origin_col, Light setting) {
@@ -308,7 +329,25 @@ static void runtests() {
 }
 
 int main(int argc, char *argv[]) {
-    runtests();
+    if( argc == 1 ) {
+        runtests();
+    }
+    else if( argc == 3 ) {
+        int steps = atoi(argv[2]);
+        FILE *input = open_file(argv[1], "r");
+        Lights *lights = Lights_new_from_fp(100, 100, input);
+        for( int i = 1; i <= steps; i++ ) {
+            Lights_step(lights);
+        }
+
+        printf("%d\n", Lights_count(lights, true));
+
+        Lights_destroy(lights);
+    }
+    else {
+        char *desc[] = {argv[0], "<input file>", "<num steps>"};
+        usage(3, desc);
+    }
     
     return 0;
 }
