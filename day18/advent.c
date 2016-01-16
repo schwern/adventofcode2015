@@ -13,28 +13,32 @@ typedef struct {
     Light *grid;
 } Lights;
 
+static Light *Lights_new_grid(Lights *self) {
+    return calloc(self->max_rows * self->max_cols, sizeof(Light));
+}
+
 static Lights *Lights_new(size_t rows, size_t cols) {
-    Lights *lights = calloc(1, sizeof(Lights));
+    Lights *self = calloc(1, sizeof(Lights));
 
-    lights->max_rows = rows;
-    lights->max_cols = cols;
-    lights->grid = calloc(rows*cols, sizeof(Light));
+    self->max_rows = rows;
+    self->max_cols = cols;
+    self->grid = Lights_new_grid(self);
     
-    lights->rows = 0;
+    self->rows = 0;
 
-    return lights;
+    return self;
 }
 
 static Lights *Lights_new_from_array(size_t rows, size_t cols, Light *grid) {
-    Lights *lights = calloc(1, sizeof(Lights));
+    Lights *self = calloc(1, sizeof(Lights));
 
-    lights->max_rows = rows;
-    lights->max_cols = cols;
-    lights->rows = rows;
+    self->max_rows = rows;
+    self->max_cols = cols;
+    self->rows = rows;
 
-    lights->grid = grid;
+    self->grid = grid;
 
-    return lights;
+    return self;
 }
 
 static Lights *Lights_new_from_array_copy(size_t rows, size_t cols, Light *orig_grid) {
@@ -88,7 +92,7 @@ static void assert_lights_eq(Lights *have, Lights *want) {
     }
 }
 
-static void read_light_line(char *line, void *_lights) {
+static void Lights_read_line(char *line, void *_lights) {
     Lights *lights = (Lights *)_lights;
     size_t row = Lights_get_next_row(lights);
     lights->rows++;
@@ -111,16 +115,164 @@ static void read_light_line(char *line, void *_lights) {
     }
 }
 
-static void test_read_lights() {
-    printf("test_read_lights...");
+static Lights *Lights_new_from_strings(size_t rows, size_t cols, char *lines[]) {
+    Lights *self = Lights_new(rows, cols);
+
+    for( int i = 0; lines[i] != NULL && i < self->max_rows; i++ ) {
+        Lights_read_line(lines[i], self);
+    }
+
+    return self;
+}
+
+static int Lights_num_neighbors(Lights *self, size_t origin_row, size_t origin_col, Light setting) {
+    int num_neighbors = 0;
     
-    char *input[] = {
+    for( int i = -1; i <= 1; i++ ) {
+        for( int j = -1; j <= 1; j++ ) {
+            // We're not our own neighbor
+            if( i == 0 && j == 0 )
+                continue;
+            
+            int row = origin_row + i;
+            int col = origin_col + j;
+
+            // We've gone past the edge
+            if( row < 0 || col < 0 ||
+                row >= self->max_rows    ||
+                col >= self->max_cols
+            ) {
+                continue;
+            }
+
+            if( Lights_get(self, row, col) == setting )
+                num_neighbors++;
+        }
+    }
+
+    return num_neighbors;
+}
+
+static void Lights_step(Lights *self) {
+    Light *new_grid = Lights_new_grid(self);
+    
+    for( int row = 0; row < self->max_rows; row++ ) {
+        for( int col = 0; col < self->max_cols; col++ ) {
+            Light light = Lights_get(self, row, col);
+            int num_on = Lights_num_neighbors(self, row, col, true);
+
+            // A light which is on stays on when 2 or 3 neighbors are on, and turns off otherwise.
+            if( light ) {
+                switch( num_on ) {
+                    case 2:
+                    case 3:
+                        TWOD(new_grid, row, col, self->max_rows) = true;
+                        break;
+                    default:
+                        TWOD(new_grid, row, col, self->max_rows) = false;
+                        break;
+                }
+            }
+            // A light which is off turns on if exactly 3 neighbors are on, and stays off otherwise.
+            else {
+                if( num_on == 3 ) {
+                    TWOD(new_grid, row, col, self->max_rows) = true;
+                }
+                else {
+                    TWOD(new_grid, row, col, self->max_rows) = false;
+                }
+            }
+        }
+    }
+
+    free(self->grid);
+    self->grid = new_grid;
+}
+
+static void test_lights_step() {
+    printf("test_lights_step...");
+    
+    char *start[] = {
         ".#.#.#",
         "...##.",
         "#....#",
         "..#...",
         "#.#..#",
-        "####..",
+        "####.."
+    };
+
+    char *step1[] = {
+        "..##..",
+        "..##.#",
+        "...##.",
+        "......",
+        "#.....",
+        "#.##.."
+    };
+
+    char *step2[] = {
+        "..###.",
+        "......",
+        "..###.",
+        "......",
+        ".#....",
+        ".#...."
+    };
+
+    char *step3[] = {
+        "...#..",
+        "......",
+        "...#..",
+        "..##..",
+        "......",
+        "......"
+    };
+
+    char *step4[] = {
+        "......",
+        "......",
+        "..##..",
+        "..##..",
+        "......",
+        "......"
+    };
+
+    Lights *lights = Lights_new_from_strings(6, 6, start);
+
+    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, true),  ==, 1 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 0, 0, false), ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, true),  ==, 1 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 5, 5, false), ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, true),  ==, 2 );
+    g_assert_cmpint( Lights_num_neighbors(lights, 1, 1, false), ==, 6 );
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step1));
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step2));
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step3));
+
+    Lights_step(lights);
+    assert_lights_eq(lights, Lights_new_from_strings(6, 6, step4));
+
+    Lights_destroy(lights);
+    
+    puts("OK");
+}
+
+static void test_read_lights() {
+    printf("test_read_lights...");
+    
+    char *input[] = {
+        ".#.#.#\n",
+        "...##.\n",
+        "#....#\n",
+        "..#...\n",
+        "#.#..#\n",
+        "####..\n",
         NULL
     };
 
@@ -133,11 +285,7 @@ static void test_read_lights() {
         true, true, true, true, false, false
     };
     Lights *want = Lights_new_from_array_copy(6, 6, want_array);
-    
-    Lights *have = Lights_new(6, 6);
-    for( int i = 0; input[i] != NULL; i++ ) {
-        read_light_line(input[i], have);
-    }
+    Lights *have = Lights_new_from_strings(6, 6, input);
 
     if( DEBUG ) {
         puts("Have");
@@ -156,6 +304,7 @@ static void test_read_lights() {
 
 static void runtests() {
     test_read_lights();
+    test_lights_step();
 }
 
 int main(int argc, char *argv[]) {
