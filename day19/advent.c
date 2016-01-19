@@ -89,8 +89,71 @@ static void test_read_transforms() {
     puts("OK");
 }
 
+static GHashTable *make_all_molecules(Transforms *trans, char *start) {
+    GHashTable *molecules = g_hash_table_new_full( g_str_hash, g_str_equal, free, NULL );
+    GList *keys = g_hash_table_get_keys(trans);
+    for( GList *key = keys; key != NULL; key = key->next ) {
+        char *k = key->data;
+        GArray *vals = g_hash_table_lookup(trans, k);
+
+        for( int i = 0; i < vals->len; i++ ) {
+            char *v = g_array_index(vals, char *, i);
+            
+            char *pos = start;
+            while( (pos = strstr(pos, k)) != NULL ) {
+                size_t newlen = strlen(start) + strlen(v) - strlen(k) + 1;
+
+                char *new = calloc( newlen, sizeof(char) );
+                strncat(new, start, pos - start);
+                strcat(new, v);
+                strcat(new, pos + strlen(k));
+
+                g_hash_table_add(molecules, new);
+
+                pos += strlen(k);
+            }
+        }
+    }
+
+    g_list_free(keys);
+
+    return molecules;
+}
+
+static int num_replacements(Transforms *trans, char *start) {
+    GHashTable *molecules = make_all_molecules(trans, start);
+    int num = g_hash_table_size(molecules);
+
+    g_hash_table_unref(molecules);
+    
+    return num;
+}
+
+
+static void test_num_replacements() {
+    printf("test_num_replacements...");
+
+    char *input = {
+        "H => HO\n"
+        "H => OH\n"
+        "O => HH\n"
+    };
+
+    Transforms *trans = Transforms_new();
+    FILE *fp = fmemopen(input, strlen(input), "r");
+    foreach_line(fp, read_transform_line, trans);
+
+    g_assert_cmpint( num_replacements(trans, "HOH"), ==, 4 );
+
+    Transforms_destroy(trans);
+    fclose(fp);
+    
+    puts("OK");
+}
+
 static void runtests() {
     test_read_transforms();
+    test_num_replacements();
 }
 
 int main(int argc, char *argv[]) {
