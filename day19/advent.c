@@ -58,6 +58,13 @@ static void read_transform_line(char *line, void *_trans) {
     free(in);
 }
 
+static Transforms *read_transforms(FILE *input) {
+    Transforms *trans = Transforms_new();
+    foreach_line(input, read_transform_line, trans);
+
+    return trans;
+}
+
 static void test_read_transforms() {
     printf("test_read_transforms...");
 
@@ -67,9 +74,8 @@ static void test_read_transforms() {
         "O => HH\n"
     };
 
-    Transforms *trans = Transforms_new();
     FILE *fp = fmemopen(input, strlen(input), "r");
-    foreach_line(fp, read_transform_line, trans);
+    Transforms *trans = read_transforms(fp);
 
     g_assert_true( Transforms_lookup(trans, "H") );
     g_assert_true( Transforms_lookup(trans, "O") );
@@ -139,9 +145,8 @@ static void test_num_replacements() {
         "O => HH\n"
     };
 
-    Transforms *trans = Transforms_new();
     FILE *fp = fmemopen(input, strlen(input), "r");
-    foreach_line(fp, read_transform_line, trans);
+    Transforms *trans = read_transforms(fp);
 
     g_assert_cmpint( num_replacements(trans, "HOH"), ==, 4 );
 
@@ -157,7 +162,19 @@ static void runtests() {
 }
 
 int main(int argc, char *argv[]) {
-    runtests();
+    if( argc == 3 ) {
+        FILE *input = open_file(argv[1], "r");
+        Transforms *trans = read_transforms(input);
+        printf("%d\n", num_replacements(trans, argv[2]));
+        Transforms_destroy(trans);
+    }
+    else if( argc == 1 ) {
+        runtests();
+    }
+    else {
+        char *desc[] = {argv[0], "<input file>", "<start>"};
+        usage(3, desc);
+    }
 
     return 0;
 }
